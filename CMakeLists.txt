@@ -7,7 +7,9 @@ project(affw_ctrl)
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	std_msgs
-	message_generation)
+	message_generation
+	message_filters
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -46,6 +48,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
 	FILES
 	State.msg
+	TargetRequest.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -180,6 +183,10 @@ catkin_package(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+    
+add_library(model_learner src/LWPRLearner.cpp src/DummyLearner.cpp src/ModelLearner.cpp)
+target_link_libraries(model_learner lwpr)
 
 add_executable(affw_ctrl src/affw_ctrl.cpp)
-target_link_libraries(affw_ctrl ${catkin_LIBRARIES})
+target_link_libraries(affw_ctrl ${catkin_LIBRARIES} model_learner)
+add_dependencies(affw_ctrl ssl_robot_msgs_gencpp affw_ctrl_gencpp)

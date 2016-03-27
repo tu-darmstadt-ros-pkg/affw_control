@@ -1,4 +1,3 @@
-time t
-float32[] local_vel
-float32[] global_vel
-float32[] global_pos
+std_msgs/Header header
+float32[] vel
+float32[] custom

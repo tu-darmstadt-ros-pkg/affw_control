@@ -5,65 +5,128 @@
  *      Author: NicolaiO
  */
 
-#include "ros/ros.h"
-#include "affw_ctrl/ActionRequest.h"
-#include "affw_ctrl/State.h"
-
+#include <affw_ctrl/ActionRequest.h>
+#include <affw_ctrl/ActionRequestRequest.h>
+#include <affw_ctrl/State.h>
+#include <affw_ctrl/TargetRequest.h>
+#include <boost/bind/arg.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/bind/placeholders.hpp>
+#include <lwpr.hh>
+#include <message_filters/connection.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/synchronizer.h>
+#include <ros/duration.h>
+#include <ros/init.h>
+#include <ros/node_handle.h>
+#include <ros/publisher.h>
+#include <ros/service_server.h>
+#include <ros/subscriber.h>
+#include <ros/time.h>
+#include <rosconsole/macros_generated.h>
+#include <std_msgs/Header.h>
+#include <stddef.h>
 #include <iostream>
-#include <fstream>
+#include <queue>
+#include <vector>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread/thread.hpp>
+#include "LWPRLearner.h"
+#include "ModelLearner.h"
 
-typedef struct DataSet_ {
-	double t;
-	std::vector<float> lvel;
-	std::vector<float> gvel;
-	std::vector<float> gpos;
-} DataSet;
+ros::Publisher targetRequest_pub;
 
-typedef struct SetPoint_ {
-	double t;
-	std::vector<float> vel;
-} SetPoint;
+ros::Duration timeOffset(0.1);
+std::vector<double> curState;
 
-ros::Time timeOffset;
-std::vector<SetPoint_> set_vels;
-std::vector<DataSet> state_vels;
-
-double getTime(ros::Time t) {
-	ros::Duration d = t - timeOffset;
-	return d.toSec();
-}
+int nFrames = 4;
+affw::ModelLearner* learner = NULL;
 
 bool actionRequest(affw_ctrl::ActionRequest::Request &req,
 		affw_ctrl::ActionRequest::Response &res) {
-	res.outVel = req.setPoint;
-	SetPoint ds;
-	ds.t = getTime(req.t);
-	ds.vel = req.setPoint;
-	set_vels.push_back(ds);
+
+	affw_ctrl::TargetRequest tr;
+	tr.header = req.header;
+	tr.header.stamp += timeOffset;
+	tr.state.insert(tr.state.end(), curState.begin(), curState.end());
+	tr.target = req.setPoint;
+	tr.action = req.setPoint;
+
+	if(curState.size() == nFrames * tr.action.size())
+	{
+		affw::Vector s(tr.state.begin(), tr.state.end());
+		affw::Vector t(tr.target.begin(), tr.target.end());
+		// get action compensation
+		affw::Vector action = learner->getActionCompensation(s, t);
+		tr.actionComp.reserve(action.size());
+		for(int i=0;i<action.size(); i++)
+		{
+			tr.actionComp.push_back(action[i]);
+			tr.action[i] += action[i];
+		}
+		targetRequest_pub.publish(tr);
+		ros::spinOnce();
+	}
+
+	res.outVel.insert(res.outVel.end(), tr.action.begin(), tr.action.end());
+	assert(res.outVel.size() == req.setPoint.size());
 
 	return true;
 }
 
 void feedbackStateCallback(const affw_ctrl::State::ConstPtr& state) {
-	DataSet ds;
-	ds.t = getTime(state->t);
-	ds.lvel = state->local_vel;
-	ds.gvel = state->global_vel;
-	ds.gpos = state->global_pos;
+	int dim = state->vel.size();
 
-	state_vels.push_back(ds);
+	if(learner == NULL)
+		learner = new affw::LWPR_Learner(nFrames,dim);
+
+	std::vector<double> newState;
+	if(curState.size() >= nFrames * dim)
+	{
+		newState.insert(newState.end(), curState.begin() + dim, curState.end());
+	} else
+	{
+		newState.insert(newState.end(), curState.begin(), curState.end());
+	}
+	newState.insert(newState.end(), state->vel.begin(), state->vel.end());
+
+	curState = newState;
+}
+
+void syncCallback(const affw_ctrl::State::ConstPtr& state,
+		const affw_ctrl::TargetRequest::ConstPtr& target)
+{
+	// (state, target) -> action
+	// (state, action) -> nextState
+	int dim = state->vel.size();
+	affw::Vector s,t(dim),a(dim),ac(dim),ns(dim);
+
+	s.insert(s.end(), target->state.begin(), target->state.end());
+
+	for(int i=0;i<dim;i++)
+	{
+		t[i] = target->target[i];
+		a[i] = target->action[i];
+		ac[i] = target->actionComp[i];
+		ns[i] = state->vel[i];
+	}
+
+	learner->addData(s,t,a,ac,ns);
 }
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "affw_ctrl");
 	ros::NodeHandle n;
 
-	while (ros::Time::now().isZero())
-		;
-	timeOffset = ros::Time::now();
+	targetRequest_pub = n.advertise<affw_ctrl::TargetRequest>("/affw_ctrl/target_request", 1);
+	message_filters::Subscriber<affw_ctrl::TargetRequest> targetRequest_sub(n, "/affw_ctrl/target_request", 1);
+
+	message_filters::Subscriber<affw_ctrl::State> state_sub(n, "/affw_ctrl/state", 1);
+
+	typedef message_filters::sync_policies::ApproximateTime<affw_ctrl::State, affw_ctrl::TargetRequest> MySyncPolicy;
+	// ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
+	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), state_sub, targetRequest_sub);
+	sync.registerCallback(boost::bind(&syncCallback, _1, _2));
 
 	ros::Subscriber sub_fdbk_vel = n.subscribe("/affw_ctrl/state", 1,
 			feedbackStateCallback);
@@ -72,41 +135,6 @@ int main(int argc, char **argv) {
 			actionRequest);
 
 	ros::spin();
-
-	std::vector<SetPoint>::iterator itSet = set_vels.begin();
-	std::vector<DataSet>::iterator itState = state_vels.begin();
-
-	int numDataSets = 0;
-	if (itSet < set_vels.end()) {
-		std::ofstream myfile;
-		myfile.open("/tmp/traj_out.csv");
-
-		// seek forward until first set point data
-		while (itState < state_vels.end() && itState->t < itSet->t)
-			itState++;
-
-		while (itSet < set_vels.end()) {
-			std::vector<float> setVel = itSet->vel;
-			itSet++;
-			while (itState < state_vels.end() && itState->t < itSet->t) {
-				itState++;
-				myfile << itState->t;
-				for (int i = 0; i < setVel.size(); i++)
-					myfile << " " << setVel[i];
-				for (int i = 0; i < itState->lvel.size(); i++)
-					myfile << " " << itState->lvel[i];
-				for (int i = 0; i < itState->gvel.size(); i++)
-					myfile << " " << itState->gvel[i];
-				for (int i = 0; i < itState->gpos.size(); i++)
-					myfile << " " << itState->gpos[i];
-				myfile << std::endl;
-				numDataSets++;
-			}
-		}
-		myfile.close();
-	}
-
-	std::cout << "Exported " << numDataSets << " data sets" << std::endl;
 
 	return 0;
 }
