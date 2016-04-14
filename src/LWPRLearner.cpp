@@ -13,7 +13,7 @@ namespace affw {
 LWPR_Learner::LWPR_Learner(int nFrames, int actionDim) :
 		model(actionDim*(1+nFrames),actionDim) {
 
-   cutoff = 0.01;
+   cutoff = 0.001;
 
    /* Set initial distance metric to 50*(identity matrix) */
    model.setInitD(50);
@@ -36,14 +36,19 @@ std::vector<double> LWPR_Learner::update(std::vector<double> x, std::vector<doub
 }
 
 
-void LWPR_Learner::addData(Vector state, Vector target, Vector action, Vector actionComp, Vector nextState)
+void LWPR_Learner::addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState)
 {
 	doubleVec x,y;
 	x.insert(x.end(), state.begin(), state.end());
 	x.insert(x.end(), target.begin(), target.end());
 
-	for(int i=0;i<nextState.size();i++)
-		y.push_back(actionComp[i] + 1 * ( target[i] - nextState[i] ));
+	double k = 0.5;
+	for(int i=0;i<nextState.size();i++) {
+		double diff = ( target[i] - nextState[i] );
+		y.push_back(actionComp[i] + k * diff);
+		std::cout << diff << " ";
+	}
+	std::cout << std::endl;
 
 	try {
 		doubleVec yp = model.update((doubleVec) x, (doubleVec) y);
@@ -51,9 +56,10 @@ void LWPR_Learner::addData(Vector state, Vector target, Vector action, Vector ac
 	{
 		std::cerr << "addData: LWPR error: " << e.getString() << std::endl;
 	}
+
 }
 
-Vector LWPR_Learner::getActionCompensation(Vector state, Vector target)
+Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target)
 {
 	doubleVec yp;
 	doubleVec x;

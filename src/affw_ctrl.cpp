@@ -32,14 +32,16 @@
 #include <vector>
 
 #include "LWPRLearner.h"
+#include "DummyLearner.h"
 #include "ModelLearner.h"
 
 ros::Publisher targetRequest_pub;
 
-ros::Duration timeOffset(0.1);
+ros::Duration timeOffset(0.05);
 std::vector<double> curState;
 
-int nFrames = 4;
+int nFrames = 1;
+std::string learner_type = "";
 affw::ModelLearner* learner = NULL;
 
 bool actionRequest(affw_ctrl::ActionRequest::Request &req,
@@ -78,7 +80,16 @@ void feedbackStateCallback(const affw_ctrl::State::ConstPtr& state) {
 	int dim = state->vel.size();
 
 	if(learner == NULL)
-		learner = new affw::LWPR_Learner(nFrames,dim);
+	{
+		if(learner_type == "lwpr") {
+			learner = new affw::LWPR_Learner(nFrames,dim);
+			std::cout << "LWPR learner created" << std::endl;
+		} else
+		{
+			learner = new affw::DummyLearner();
+			std::cout << "dummy learner created" << std::endl;
+		}
+	}
 
 	std::vector<double> newState;
 	if(curState.size() >= nFrames * dim)
@@ -117,6 +128,8 @@ void syncCallback(const affw_ctrl::State::ConstPtr& state,
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "affw_ctrl");
 	ros::NodeHandle n;
+
+	ros::param::get("learner", learner_type);
 
 	targetRequest_pub = n.advertise<affw_ctrl::TargetRequest>("/affw_ctrl/target_request", 1);
 	message_filters::Subscriber<affw_ctrl::TargetRequest> targetRequest_sub(n, "/affw_ctrl/target_request", 1);

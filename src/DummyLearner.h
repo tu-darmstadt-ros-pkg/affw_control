@@ -16,8 +16,8 @@ class DummyLearner: public ModelLearner {
 public:
 	DummyLearner();
 	virtual ~DummyLearner();
-	void addData(Vector state, Vector target, Vector action, Vector actionComp, Vector nextState);
-	Vector getActionCompensation(Vector state, Vector target);
+	void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState);
+	Vector getActionCompensation(const Vector& state, const Vector& target);
 };
 
 } /* namespace affw */

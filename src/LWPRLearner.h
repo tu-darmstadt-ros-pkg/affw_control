@@ -21,8 +21,8 @@ class LWPR_Learner : public ModelLearner {
 public:
 	LWPR_Learner(int nFrames, int actionDim);
 	virtual ~LWPR_Learner();
-	void addData(Vector state, Vector target, Vector action, Vector actionComp, Vector nextState);
-	Vector getActionCompensation(Vector state, Vector target);
+	void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState);
+	Vector getActionCompensation(const Vector& state, const Vector& target);
 private:
 	LWPR_Object model;
 	double cutoff;

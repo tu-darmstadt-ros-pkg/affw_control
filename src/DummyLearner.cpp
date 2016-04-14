@@ -16,11 +16,11 @@ DummyLearner::DummyLearner() {
 DummyLearner::~DummyLearner() {
 }
 
-void DummyLearner::addData(Vector state, Vector target, Vector action, Vector actionComp, Vector nextState)
+void DummyLearner::addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState)
 {
 }
 
-Vector DummyLearner::getActionCompensation(Vector state, Vector target)
+Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target)
 {
 	Vector v(target.size());
 	return v;
