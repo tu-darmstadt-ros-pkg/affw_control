@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "ModelLearner.h"
+#include "../../../affw_ctrl/src/learner/ModelLearner.h"
 
 namespace affw {
 

@@ -9,6 +9,7 @@
 #define AFFW_CTRL_SRC_MODELLEARNER_H_
 
 #include <vector>
+#include <string>
 
 namespace affw {
 
@@ -20,6 +21,7 @@ public:
 	virtual ~ModelLearner();
 	virtual void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState) = 0;
 	virtual Vector getActionCompensation(const Vector& state, const Vector& target) = 0;
+	virtual void write(const std::string& folder) = 0;
 private:
 };
 

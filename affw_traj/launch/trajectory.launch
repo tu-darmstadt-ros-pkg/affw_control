@@ -1,0 +1,6 @@
+<launch>
+	<node name="affw_traj" pkg="affw_traj" type="affw_traj" required="true" output="screen" args="/tmp/traj.csv" />
+    	
+	<arg name="export" default="false" />
+	<include if="$(arg export)" file="$(find affw_export)/launch/export_all.launch" />
+</launch>

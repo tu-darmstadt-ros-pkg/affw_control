@@ -13,19 +13,27 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
-#include "ModelLearner.h"
+
+#include "../../../affw_ctrl/src/learner/Config.h"
+#include "../../../affw_ctrl/src/learner/ModelLearner.h"
 
 namespace affw {
 
 class LWPR_Learner : public ModelLearner {
 public:
-	LWPR_Learner(int nFrames, int actionDim);
+	LWPR_Learner(Config* config);
 	virtual ~LWPR_Learner();
 	void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState);
 	Vector getActionCompensation(const Vector& state, const Vector& target);
+	void write(const std::string& folder);
 private:
-	LWPR_Object model;
+	LWPR_Object* model;
+
+	Config* config;
 	double cutoff;
+	double k;
+	double maxComp;
+
 	std::vector<double> update(std::vector<double>, std::vector<double>);
 	std::vector<double> predict(std::vector<double>);
 };

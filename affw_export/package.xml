@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>affw_export</name>
+  <version>1.0.0</version>
+  <description>Export data from affw_ctrl</description>
+
+  <maintainer email="nicolai.ommer@gmail.com">Nicolai Ommer</maintainer>
+
+
+  <license>BSD</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>affw_msgs</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>affw_msgs</run_depend>
+</package>

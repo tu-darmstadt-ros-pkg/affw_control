@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "DummyLearner.h"
+#include "../../../affw_ctrl/src/learner/DummyLearner.h"
 
 namespace affw {
 
@@ -24,6 +24,10 @@ Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& ta
 {
 	Vector v(target.size());
 	return v;
+}
+
+void DummyLearner::write(const std::string& folder)
+{
 }
 
 } /* namespace affw */
