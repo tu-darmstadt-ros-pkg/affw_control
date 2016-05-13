@@ -20,6 +20,7 @@
 #include <ros/subscriber.h>
 #include <ros/time.h>
 #include <std_msgs/Header.h>
+#include <std_msgs/String.h>
 #include <tf/LinearMath/Matrix3x3.h>
 #include <tf/LinearMath/Quaternion.h>
 #include <fstream>
@@ -28,6 +29,7 @@
 #include <string>
 
 std::ofstream fGlobalState, fLocalVel, fSet;
+std::string folder;
 
 double getOrientation(geometry_msgs::Quaternion gq) {
 	double ow = gq.w;
@@ -71,15 +73,16 @@ void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
 			<< twist->angular.z << std::endl;
 }
 
-int main(int argc, char **argv) {
-	ros::init(argc, argv, "export_movement_data");
-	ros::NodeHandle n;
+void openFiles()
+{
+	if(fLocalVel.is_open()) fLocalVel.close();
+	if(fGlobalState.is_open()) fGlobalState.close();
+	if(fSet.is_open()) fSet.close();
 
-	// wait for valid time
-	while(ros::Time::now().isZero());
-
-	std::string folder = "/tmp/ros_movement_data";
-	ros::param::get("dataFolder", folder);
+	if(folder.empty())
+	{
+		return;
+	}
 
 	std::string localVelFile = folder + "/localVel.csv";
 	std::string globalStateFile = folder + "/globalState.csv";
@@ -99,10 +102,36 @@ int main(int argc, char **argv) {
 	fLocalVel << std::fixed << std::setw(11) << std::setprecision(6);
 	fGlobalState << std::fixed << std::setw(11) << std::setprecision(6);
 	fSet << std::fixed << std::setw(11) << std::setprecision(6);
+}
 
-	ros::Subscriber sub_odom = n.subscribe("odom", 1, callbackOdom);
-	ros::Subscriber sub_state = n.subscribe("state", 1, callbackState);
-	ros::Subscriber sub_set = n.subscribe("cmd_vel", 1, callbackSet);
+void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
+{
+	if(folder != dataFolder->data)
+	{
+		folder = dataFolder->data;
+		openFiles();
+	}
+}
+
+int main(int argc, char **argv) {
+	ros::init(argc, argv, "export_movement_data");
+	ros::NodeHandle n;
+
+	folder = "/tmp/ros_movement_data";
+	ros::param::get("dataFolder", folder);
+	bool split = false;
+	ros::param::get("split", split);
+
+	ros::Subscriber sub_dataFolder;
+	if(split) {
+		sub_dataFolder = n.subscribe("dataFolder", 1,	callbackDataFolder);
+	} else {
+		openFiles();
+	}
+
+	ros::Subscriber sub_odom = n.subscribe("odom", 50, callbackOdom);
+	ros::Subscriber sub_state = n.subscribe("state", 50, callbackState);
+	ros::Subscriber sub_set = n.subscribe("cmd_vel", 50, callbackSet);
 
 	ros::spin();
 

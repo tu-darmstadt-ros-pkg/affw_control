@@ -14,6 +14,7 @@
 #include <ros/subscriber.h>
 #include <ros/time.h>
 #include <std_msgs/Header.h>
+#include <std_msgs/String.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -46,6 +47,8 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 	for (int i = 0; i < tr->actionComp.size(); i++)
 		fAffw << " " << tr->actionComp[i];
 
+	fAffw << " " << tr->timeAction2StateOffset << " " << tr->timeStateDelayOffset;
+
 	fAffw << std::endl;
 }
 
@@ -56,11 +59,16 @@ void callbackProcTime(const affw_msgs::ProcTime::ConstPtr& proc) {
 			<< proc->procTime << std::endl;
 }
 
-int main(int argc, char **argv) {
-	ros::init(argc, argv, "affw_export");
-	ros::NodeHandle n;
+void openFiles()
+{
+	// close log files
+	if(fAffw.is_open()) fAffw.close();
+	if(fProcTime.is_open()) fProcTime.close();
 
-	ros::param::get("dataFolder", folder);
+	if(folder.empty())
+	{
+		return;
+	}
 
 	std::string affwFile = folder + "/affw.csv";
 	std::string procTimeFile = folder + "/procTime.csv";
@@ -71,20 +79,41 @@ int main(int argc, char **argv) {
 	boost::filesystem::remove(affwFile);
 	boost::filesystem::remove(procTimeFile);
 
-	// wait for valid time
-	ros::Time time;
-	do {
-		time = ros::Time::now();
-	} while (time.isZero());
 
 	// open log files
 	fAffw.open(affwFile.c_str());
 	fProcTime.open(procTimeFile.c_str());
 
+	first = true;
+}
+
+void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
+{
+	if(folder != dataFolder->data)
+	{
+		folder = dataFolder->data;
+		openFiles();
+	}
+}
+
+int main(int argc, char **argv) {
+	ros::init(argc, argv, "affw_export");
+	ros::NodeHandle n;
+	ros::param::get("dataFolder", folder);
+	bool split = false;
+	ros::param::get("split", split);
+
+	ros::Subscriber sub_dataFolder;
+	if(split) {
+		sub_dataFolder = n.subscribe("dataFolder", 1,	callbackDataFolder);
+	} else {
+		openFiles();
+	}
+
 	// subscribe to topics
-	ros::Subscriber sub_affw = n.subscribe("/affw_ctrl/target_request", 1,
+	ros::Subscriber sub_affw = n.subscribe("/affw_ctrl/target_request", 50,
 			callbackAffw);
-	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 1,
+	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 50,
 			callbackProcTime);
 
 	// go

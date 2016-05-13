@@ -23,14 +23,22 @@
 #include <ros/time.h>
 #include <rosconsole/macros_generated.h>
 #include <std_msgs/Header.h>
+#include <std_msgs/String.h>
 #include <tf/transform_datatypes.h>
 #include <iostream>
 #include <iterator>
 #include <string>
 #include <vector>
 #include <fstream>
+#include <signal.h>
+#include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+ros::Publisher pub_cmd_vel;
+ros::Publisher pub_set_vel;
+ros::Publisher pub_dataFolder;
+bool running = true;
 
 bool moveTo(geometry_msgs::Pose& targetPose)
 {
@@ -44,8 +52,7 @@ bool moveTo(geometry_msgs::Pose& targetPose)
 
 	move_base_msgs::MoveBaseGoal goal;
 
-	//we'll send a goal to the robot to move 1 meter forward
-	goal.target_pose.header.frame_id = "base_link";
+	goal.target_pose.header.frame_id = "map";
 	goal.target_pose.header.stamp = ros::Time::now();
 
 	goal.target_pose.pose = targetPose;
@@ -57,7 +64,7 @@ bool moveTo(geometry_msgs::Pose& targetPose)
 
 	if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
-		ROS_INFO_STREAM("Init pose reached: " << targetPose);
+		ROS_INFO("Init pose reached.");
 		return true;
 	}
 	ROS_INFO("Could not reach target pose.");
@@ -66,23 +73,18 @@ bool moveTo(geometry_msgs::Pose& targetPose)
 
 bool executeTraj(std::vector<geometry_msgs::TwistStamped>& setpoints, ros::Publisher& pub_set_vel)
 {
-	std::cout << "a" << std::endl;
 	ros::Duration tStart(ros::Time::now().toSec());
-	std::cout << "b" << std::endl;
 	std::vector<geometry_msgs::TwistStamped>::iterator it = setpoints.begin();
 	do {
-		std::cout << "c" << std::endl;
 		geometry_msgs::TwistStamped vel = *it;
-		std::cout << vel.header.stamp << std::endl;
+//		std::cout << vel.header.stamp << std::endl;
 		vel.header.stamp += tStart;
-		std::cout << "d" << std::endl;
 		pub_set_vel.publish(vel);
 		ros::spinOnce();
-		std::cout << "e" << std::endl;
 		it++;
 		if(it < setpoints.end())
 		{
-			ros::Time tNext = it->header.stamp;
+			ros::Time tNext = it->header.stamp + tStart;
 			ros::Duration diff = tNext - ros::Time::now();
 			if(diff.toSec() <= 0 && diff.toSec() > -1e-3)
 			{
@@ -98,7 +100,7 @@ bool executeTraj(std::vector<geometry_msgs::TwistStamped>& setpoints, ros::Publi
 		{
 			return true;
 		}
-	} while(ros::ok());
+	} while(ros::ok() && running);
 
 	return false;
 }
@@ -106,8 +108,14 @@ bool executeTraj(std::vector<geometry_msgs::TwistStamped>& setpoints, ros::Publi
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "affw_traj");
 	ros::NodeHandle n;
-	ros::Publisher pub_set_vel = n.advertise<geometry_msgs::TwistStamped>(
+
+	std::string dataFolder = "/tmp/traj_data";
+	ros::param::get("dataFolder", dataFolder);
+
+	pub_set_vel = n.advertise<geometry_msgs::TwistStamped>(
 			"/affw_ctrl/target_vel", 1);
+	pub_dataFolder = n.advertise<std_msgs::String>("dataFolder", 1);
+	pub_cmd_vel = n.advertise<geometry_msgs::TwistStamped>("/cmd/vel", 1);
 
 	if(argc != 2)
 	{
@@ -115,10 +123,19 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	int numIterations = 3;
+	double initPosW = 0;
+	geometry_msgs::Pose initPose;
+	ros::param::get("numIterations", numIterations);
+	ros::param::get("initPosX", initPose.position.x);
+	ros::param::get("initPosY", initPose.position.y);
+	ros::param::get("initPosW", initPosW);
+	initPose.orientation = tf::createQuaternionMsgFromYaw(initPosW);
+
+	while(ros::Time::now().isZero());
 	const char* filename = argv[1];
 	std::ifstream file(filename);
 	std::vector<geometry_msgs::TwistStamped> setpoints;
-
 	double t, vx, vy, vw;
 	while (file >> t >> vx >> vy >> vw) {
 		geometry_msgs::TwistStamped vel;
@@ -131,17 +148,15 @@ int main(int argc, char **argv) {
 	}
 	file.close();
 
-	while(ros::Time::now().isZero());
-	ros::Duration(0.5).sleep();
+	geometry_msgs::Twist zeroVel;
+	pub_cmd_vel.publish(zeroVel);
 
-	int numIterations = 1;
-	double initPosW = 0;
-	geometry_msgs::Pose initPose;
-	ros::param::get("numIterations", numIterations);
-	ros::param::get("initPosX", initPose.position.x);
-	ros::param::get("initPosY", initPose.position.x);
-	ros::param::get("initPosW", initPosW);
-	initPose.orientation = tf::createQuaternionMsgFromYaw(initPosW);
+	std_msgs::String dataFolderMsg;
+	dataFolderMsg.data = "";
+	pub_dataFolder.publish(dataFolderMsg);
+
+	int i = 0;
+	while(boost::filesystem::remove_all(dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i++)));
 
 	for(int i = 0;i < numIterations;i++)
 	{
@@ -150,14 +165,17 @@ int main(int argc, char **argv) {
 		{
 			break;
 		}
+		ros::Duration(0.5).sleep();
 		ROS_INFO("Start trajectory");
+		dataFolderMsg.data = dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i);
+		pub_dataFolder.publish(dataFolderMsg);
 		if(!executeTraj(setpoints, pub_set_vel))
 		{
 			break;
 		}
+		dataFolderMsg.data = "";
+		pub_dataFolder.publish(dataFolderMsg);
 	}
-
-	ros::shutdown();
 
 	return 0;
 }

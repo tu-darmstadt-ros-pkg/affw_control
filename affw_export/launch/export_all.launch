@@ -1,5 +1,8 @@
 <launch>
+	<arg name="split" default="false" />
+	<arg name="postfix" default="" />
 	<param name="dataFolder" value="/tmp/affw_data" />
-	<node name="affw_export" pkg="affw_export" type="affw_export" output="screen" />
-	<node name="export_movement_data" pkg="export_movement_data" type="export_movement_data" output="screen" />
+	<param name="split" value="$(arg split)" />
+	<node name="affw_export$(arg postfix)" pkg="affw_export" type="affw_export" output="screen" />
+	<node name="export_movement_data$(arg postfix)" pkg="export_movement_data" type="export_movement_data" output="screen" />
 </launch>

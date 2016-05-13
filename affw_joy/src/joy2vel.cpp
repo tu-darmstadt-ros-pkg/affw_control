@@ -21,8 +21,11 @@
 #include <cmath>
 #include <string>
 #include <assert.h>
+#include <signal.h>
 
+ros::Publisher pub_vel_cmd;
 geometry_msgs::Twist targetVel;
+bool running = true;
 
 double vDef = 1;
 double vMax = 3;
@@ -70,6 +73,18 @@ double angleBetweenVectorAndVector(double v1x, double v1y, double v2x, double v2
 	return fabsf(rotation);
 }
 
+void mySigintHandler(int sig)
+{
+	running = false;
+
+	geometry_msgs::Twist zeroVel;
+	pub_vel_cmd.publish(zeroVel);
+	ros::spinOnce();
+
+	// All the default sigint handler does is call shutdown()
+	ros::shutdown();
+}
+
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "ssl_robot_joy");
 	ros::NodeHandle n;
@@ -92,25 +107,16 @@ int main(int argc, char **argv) {
 	else
 		ROS_INFO("affw disabled");
 
-	std::string topic;
-	if(affw)
-		topic = "/affw_ctrl/target_vel";
-	else
-		topic = "/cmd_vel";
+	pub_vel_cmd = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+	ros::Publisher pub_vel_target = n.advertise<geometry_msgs::TwistStamped>("/affw_ctrl/target_vel", 1);
+	ros::Subscriber sub_joy = n.subscribe("/joy", 1, callbackJoy);
 
-	ros::Publisher pub_vel;
-	if(affw)
-		pub_vel = n.advertise<geometry_msgs::TwistStamped>(topic, 1);
-	else
-		pub_vel = n.advertise<geometry_msgs::Twist>(topic, 1);
-
-	ros::Subscriber sub_joy = n.subscribe("/joy", 1,
-			callbackJoy);
+	signal(SIGINT, mySigintHandler);
 
 	geometry_msgs::Twist curVel;
 	double dt = 0.01;
 	int seq = 0;
-	while(ros::ok())
+	while(ros::ok() && running)
 	{
 		double acc;
 		if (targetVel.linear.x == 0 && targetVel.linear.y == 0)
@@ -150,13 +156,15 @@ int main(int argc, char **argv) {
 			curVelStamp.header.seq = seq++;
 			curVelStamp.header.stamp = ros::Time::now();
 			curVelStamp.twist = curVel;
-			pub_vel.publish(curVelStamp);
+			pub_vel_target.publish(curVelStamp);
 		} else
-			pub_vel.publish(curVel);
+			pub_vel_cmd.publish(curVel);
 		ros::spinOnce();
 
 		ros::Duration(dt).sleep();
 	}
+
+	mySigintHandler(0);
 
 	return 0;
 }

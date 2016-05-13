@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
 	tf
 )
 
+find_package(Boost REQUIRED COMPONENTS system)
+
 catkin_package(
   CATKIN_DEPENDS roscpp affw_ctrl move_base_msgs actionlib tf
 )
