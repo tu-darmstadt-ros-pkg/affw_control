@@ -24,8 +24,9 @@ LWPR_Learner::LWPR_Learner(Config* cfg)
 
 	std::string dataFolder = config->getString("dataFolder", "");
 	std::string lwpr_config = config->getString("lwpr_config", "lwpr");
+	bool reset = config->getBool("reset", true);
 	std::string configPath = dataFolder + "/" + lwpr_config + ".bin";
-	if(boost::filesystem::exists(configPath))
+	if(!reset && boost::filesystem::exists(configPath))
 	{
 		model = new LWPR_Object(configPath.c_str());
 		std::cout << "Reusing existing model with " << model->nData() << " nData." << std::endl;
@@ -43,17 +44,17 @@ LWPR_Learner::LWPR_Learner(Config* cfg)
 	model->normIn(normIn);
 
 	// #### distance metric
-	model->setInitAlpha(config->getDouble("initAlpha", 50));
+	model->setInitAlpha(config->getDouble("initAlpha", 250));
 
 	// meta learning rate
-	model->useMeta(config->getBool("useMeta", false));
+	model->useMeta(config->getBool("useMeta", true));
 	model->metaRate(config->getDouble("metaRate", 250));
 
 	// penalty factor (higher -> smoother) default: 1e-6
-	model->penalty(config->getDouble("penalty", 1e-2));
+	model->penalty(config->getDouble("penalty", 1e-6));
 
 	/* Set initial distance metric to 50*(identity matrix) */
-	model->setInitD(config->getDouble("initD", 10));
+	model->setInitD(config->getDouble("initD", 50));
 
 
 	// #### local regression

@@ -1,4 +1,6 @@
 std_msgs/Header header
+duration timeAction2StateOffset
+duration timeStateDelayOffset
 float32[] state
 float32[] target
 float32[] action
