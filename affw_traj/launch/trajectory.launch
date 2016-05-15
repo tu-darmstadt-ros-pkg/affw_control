@@ -1,18 +1,11 @@
 <launch>
 	<node name="affw_traj" pkg="affw_traj" type="affw_traj" required="true" output="screen" args="/tmp/traj.csv" />
     	
-    <param name="numIterations" value="4" />
+    <param name="numIterations" value="10" />
     <param name="initPosX" value="-2" />
     <param name="initPosY" value="0" />
     <param name="initPosW" value="0" />
     	
 	<arg name="export" default="false" />
-	<include if="$(arg export)" file="$(find affw_export)/launch/export_all.launch">
-		<arg name="split" value="true" />
-		<arg name="postfix" value="_iter" />
-	</include>
-	<include if="$(arg export)" file="$(find affw_export)/launch/export_all.launch">
-		<arg name="split" value="true" />
-		<arg name="postfix" value="_all" />
-	</include>
+	<include if="$(arg export)" file="$(find affw_export)/launch/export_all.launch" />
 </launch>
