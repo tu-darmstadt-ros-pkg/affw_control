@@ -37,10 +37,12 @@
 #include <vector>
 #include <chrono>
 
-#include "learner/Config.h"
-#include "learner/DummyLearner.h"
-#include "learner/LWPRLearner.h"
-#include "learner/ModelLearner.h"
+#include "affw/Config.h"
+#include "affw/learner/DummyLearner.h"
+#include "affw/learner/LWPRLearner.h"
+#include "affw/learner/ModelLearner.h"
+#include "affw/affw_common.h"
+#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
 
 typedef float AFFW_FLOAT;
 
@@ -56,7 +58,7 @@ affw::ModelLearner* learner = NULL;
 affw::Config config;
 
 // configs
-ros::Duration timeStateDelayOffset(0.05);
+ros::Duration timeStateDelayOffset(0.1);
 ros::Duration timeAction2StateOffset(0.0);
 bool updateModel = true;
 int dim = 0;
@@ -70,7 +72,14 @@ void fillStateVector(const std::vector<affw_msgs::State>& curStates, std::vector
 	for(int i=0;i<nFrames && i<curStates.size();i++)
 	{
 		it--;
-		vector.insert(vector.end(), it->vel.begin(), it->vel.end());
+		if(it < curStates.begin())
+		{
+			for(int j=0;j<dim;j++)
+				vector.push_back(0);
+		} else
+		{
+			vector.insert(vector.end(), it->vel.begin(), it->vel.end());
+		}
 	}
 }
 
@@ -138,10 +147,17 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 
 	// TODO multiple frames not possible this way
 	std::vector<AFFW_FLOAT> state;
-	fillStateVector(curStates, state);
+	state.reserve(nFrames * dim);
+//	fillStateVector(curStates, state);
 	ros::Time stamp = req.header.stamp;
-	getStateAtTime(req.header.stamp - timeAction2StateOffset, curStates, state);
-
+	ros::Time actionStamp = stamp;
+	for(int i=0;i<nFrames;i++)
+	{
+		std::vector<AFFW_FLOAT> frameState(dim);
+		actionStamp -= timeAction2StateOffset;
+		getStateAtTime(actionStamp, curStates, frameState);
+		state.insert(state.end(), frameState.begin(), frameState.end());
+	}
 
 	affw_msgs::TargetRequest tr;
 	tr.header.stamp = stamp + timeStateDelayOffset;
@@ -151,7 +167,7 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	tr.target = req.setPoint;
 	tr.action = req.setPoint;
 
-	if(state.size() == nFrames * tr.action.size())
+	if(state.size() == nFrames * dim)
 	{
 		affw::Vector s(tr.state.begin(), tr.state.end());
 		affw::Vector t(tr.target.begin(), tr.target.end());
@@ -175,6 +191,8 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 		}
 		targetRequest_pub.publish(tr);
 		ros::spinOnce();
+	} else {
+		std::cout << state.size() << std::endl;
 	}
 
 	res.outVel.insert(res.outVel.end(), tr.action.begin(), tr.action.end());
@@ -190,13 +208,16 @@ void feedbackStateCallback(const affw_msgs::State::ConstPtr& state) {
 		dim = state->vel.size();
 		config.setInt("actionDim", dim);
 		config.setInt("nFrames", nFrames);
+		latestStates = new boost::circular_buffer<affw_msgs::State>(nFrames*10);
 
+		// TODO create somewhere else and delete
+		affw::DataMapper* dm = new affw::KTermStateTarget2ActionCompMapper(config);
 		if(learner_type == "lwpr") {
-			learner = new affw::LWPR_Learner(&config);
+			learner = new affw::LWPR_Learner(config, dm);
 			std::cout << "LWPR learner created" << std::endl;
 		} else
 		{
-			learner = new affw::DummyLearner();
+			learner = new affw::DummyLearner(config, dm);
 			std::cout << "dummy learner created" << std::endl;
 		}
 	}
@@ -278,9 +299,6 @@ int main(int argc, char **argv) {
 	timeStateDelayOffset = ros::Duration(config.getDouble("timeOffset", timeStateDelayOffset.toSec()));
 	nFrames = config.getInt("nFrames", nFrames);
 
-	// create buffer
-	latestStates = new boost::circular_buffer<affw_msgs::State>(30);
-
 	// debugging:
 	std::cout << "Current config:" << std::endl;
 	config.print();
@@ -303,7 +321,6 @@ int main(int argc, char **argv) {
 	// gogogo
 	ros::MultiThreadedSpinner spinner;
 	spinner.spin();
-//	ros::spin();
 
 	// save data
 	config.setBool("updateModel", updateModel);
@@ -315,7 +332,7 @@ int main(int argc, char **argv) {
 		std::cout << "Could not write affw config to " << configName << std::endl;
 	}
 
-	delete latestStates;
+	if(latestStates != NULL) delete latestStates;
 	if(learner != NULL)	delete learner;
 
 	return 0;

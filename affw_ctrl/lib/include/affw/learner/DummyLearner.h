@@ -8,13 +8,13 @@
 #ifndef AFFW_CTRL_SRC_DUMMYLEARNER_H_
 #define AFFW_CTRL_SRC_DUMMYLEARNER_H_
 
-#include "../../../affw_ctrl/src/learner/ModelLearner.h"
+#include "affw/learner/ModelLearner.h"
 
 namespace affw {
 
 class DummyLearner: public ModelLearner {
 public:
-	DummyLearner();
+	DummyLearner(Config& config, DataMapper* dataMapper);
 	virtual ~DummyLearner();
 	void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState);
 	Vector getActionCompensation(const Vector& state, const Vector& target);

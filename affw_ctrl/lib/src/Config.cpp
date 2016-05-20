@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "../../../affw_ctrl/src/learner/Config.h"
+#include "affw/Config.h"
 
 #include <iostream>
 #include <fstream>
@@ -137,6 +137,33 @@ void Config::setBool(const std::string& key, bool value) {
 		map[key] = "true";
 	else
 		map[key] = "false";
+}
+
+
+
+std::vector<double> Config::getDoubleVector(const std::string& key, const std::vector<double>& defValue)
+{
+	it_type it = map.find(key);
+	if(it == map.end())
+	{
+		setDoubleVector(key, defValue);
+		return defValue;
+	}
+
+	std::istringstream iss(it->second);
+	double v;
+	std::vector<double> out;
+	while(iss >> v)
+		out.push_back(v);
+	return out;
+}
+
+void Config::setDoubleVector(const std::string& key, const std::vector<double>& value)
+{
+	std::ostringstream ss;
+	for(std::vector<double>::const_iterator it = value.begin(); it<value.end();it++)
+		ss << *it << " ";
+	map[key] = ss.str();
 }
 
 } /* namespace affw */

@@ -9,6 +9,7 @@
 #define AFFW_CTRL_SRC_CONFIG_H_
 
 #include <string>
+#include <vector>
 #include <map>
 
 namespace affw {
@@ -33,6 +34,9 @@ public:
 
 	int getBool(const std::string& key, bool defValue);
 	void setBool(const std::string& key, bool value);
+
+	std::vector<double> getDoubleVector(const std::string& key, const std::vector<double>& defValue);
+	void setDoubleVector(const std::string& key, const std::vector<double>& value);
 private:
 	std::map<std::string, std::string> map;
 };

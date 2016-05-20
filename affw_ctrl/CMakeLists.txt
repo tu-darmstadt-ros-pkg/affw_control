@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(affw_ctrl)
 
+add_subdirectory(lib)
+
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	affw_msgs
@@ -15,10 +17,7 @@ catkin_package(
   CATKIN_DEPENDS roscpp affw_msgs
 )
 
-include_directories(src/learner)
-add_library(model_learner src/learner/LWPRLearner.cpp src/learner/DummyLearner.cpp src/learner/ModelLearner.cpp src/learner/Config.cpp)
-target_link_libraries(model_learner lwpr)
-
+include_directories(${affw_INCLUDE})
 add_executable(affw_ctrl src/affw_ctrl.cpp)
-target_link_libraries(affw_ctrl ${catkin_LIBRARIES} model_learner)
-add_dependencies(affw_ctrl affw_msgs_generate_messages_cpp)
+target_link_libraries(affw_ctrl ${catkin_LIBRARIES} affw)
+add_dependencies(affw_ctrl affw affw_msgs_generate_messages_cpp)

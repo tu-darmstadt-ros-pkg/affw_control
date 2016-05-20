@@ -5,11 +5,13 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "../../../affw_ctrl/src/learner/DummyLearner.h"
+#include "affw/learner/DummyLearner.h"
 
 namespace affw {
 
-DummyLearner::DummyLearner() {
+DummyLearner::DummyLearner(Config& config, DataMapper* dataMapper)
+	: ModelLearner(config, dataMapper)
+{
 
 }
 

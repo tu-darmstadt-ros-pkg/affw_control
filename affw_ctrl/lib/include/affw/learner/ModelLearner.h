@@ -11,13 +11,15 @@
 #include <vector>
 #include <string>
 
-namespace affw {
+#include "affw/Config.h"
+#include "affw/mapping/DataMapper.h"
+#include "affw/affw_common.h"
 
-typedef std::vector<double> Vector;
+namespace affw {
 
 class ModelLearner {
 public:
-	ModelLearner();
+	ModelLearner(Config& config, DataMapper* dataMapper);
 	virtual ~ModelLearner();
 	virtual void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState) = 0;
 	virtual Vector getActionCompensation(const Vector& state, const Vector& target) = 0;

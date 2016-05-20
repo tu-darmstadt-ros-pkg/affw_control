@@ -5,11 +5,11 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "../../../affw_ctrl/src/learner/ModelLearner.h"
+#include "affw/learner/ModelLearner.h"
 
 namespace affw {
 
-ModelLearner::ModelLearner() {
+ModelLearner::ModelLearner(Config& config, DataMapper* dataMapper) {
 }
 
 ModelLearner::~ModelLearner() {
