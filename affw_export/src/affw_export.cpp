@@ -33,8 +33,8 @@
 #define NUM_LOGFILES 5
 
 std::string logFiles[] = {"affw.csv","procTime.csv","globalState.csv", "localVel.csv", "set.csv"};
-std::vector< std::vector<float> > data[NUM_LOGFILES];
-std::vector< std::vector<float> > dataAll[NUM_LOGFILES];
+std::vector< std::vector<double> > data[NUM_LOGFILES];
+std::vector< std::vector<double> > dataAll[NUM_LOGFILES];
 std::string folder = "/tmp/affw_data";
 std::string folderCustom;
 
@@ -66,7 +66,7 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 		fDim.close();
 	}
 
-	std::vector<float> ds;
+	std::vector<double> ds;
 
 	ds.push_back(tr->header.stamp.toSec());
 
@@ -88,7 +88,7 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 
 void callbackProcTime(const affw_msgs::ProcTime::ConstPtr& proc) {
 
-	std::vector<float> ds;
+	std::vector<double> ds;
 	ds.push_back(proc->stamp.toSec());
 	ds.push_back(proc->type);
 	ds.push_back(proc->procTime);
@@ -98,7 +98,7 @@ void callbackProcTime(const affw_msgs::ProcTime::ConstPtr& proc) {
 
 void callbackState(const nav_msgs::Odometry::ConstPtr& odom) {
 
-	std::vector<float> ds;
+	std::vector<double> ds;
 	ds.push_back(odom->header.stamp.toSec());
 	ds.push_back(odom->pose.pose.position.x);
 	ds.push_back(odom->pose.pose.position.y);
@@ -112,7 +112,7 @@ void callbackState(const nav_msgs::Odometry::ConstPtr& odom) {
 
 void callbackOdom(const nav_msgs::Odometry::ConstPtr& odom) {
 
-	std::vector<float> ds;
+	std::vector<double> ds;
 	ds.push_back(odom->header.stamp.toSec());
 	ds.push_back(odom->twist.twist.linear.x);
 	ds.push_back(odom->twist.twist.linear.y);
@@ -123,7 +123,7 @@ void callbackOdom(const nav_msgs::Odometry::ConstPtr& odom) {
 
 void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
 
-	std::vector<float> ds;
+	std::vector<double> ds;
 	ds.push_back(ros::Time::now().toSec());
 	ds.push_back(twist->linear.x);
 	ds.push_back(twist->linear.y);
@@ -132,17 +132,17 @@ void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
 	dataAll[LOG_SET].push_back(ds);
 }
 
-void save(std::string& folder, std::string& logFile, std::vector<std::vector<float> >& dat)
+void save(std::string& folder, std::string& logFile, std::vector<std::vector<double> >& dat)
 {
 	std::string filepath = folder + "/" + logFile;
 	boost::filesystem::remove(filepath);
 	std::ofstream f;
 	f.open(filepath.c_str());
 	f << std::fixed << std::setw(11) << std::setprecision(6);
-	for(std::vector<std::vector<float> >::iterator it = dat.begin(); it != dat.end(); it++)
+	for(std::vector<std::vector<double> >::iterator it = dat.begin(); it != dat.end(); it++)
 	{
-		std::vector<float> ds = *it;
-		for(std::vector<float>::iterator it2 = ds.begin(); it2 != ds.end(); it2++)
+		std::vector<double> ds = *it;
+		for(std::vector<double>::iterator it2 = ds.begin(); it2 != ds.end(); it2++)
 		{
 			f << *it2 << " ";
 		}
