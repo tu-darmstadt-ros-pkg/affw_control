@@ -20,15 +20,18 @@ KTermStateTarget2ActionCompMapper::KTermStateTarget2ActionCompMapper(Config& con
 	for(int i=0;i<actionDim;i++)
 	{
 		k.push_back(1);
-		maxComp.push_back(1);
 	}
 
-	std::vector<double> c_maxComp = config.getDoubleVector("maxCompensation", maxComp);
-	if(c_maxComp.size() != actionDim)
+	maxComp = config.getDoubleVector("upperOutputBounds", maxComp);
+	if(maxComp.empty())
 	{
-		std::cout << "Max comp has wrong dimension: " << c_maxComp.size() << std::endl;
-	} else {
-		maxComp = c_maxComp;
+		std::cout << "No upper output bounds set!" << std::endl;
+		for(int i=0;i<actionDim;i++) maxComp.push_back(1);
+	} else if(maxComp.size() != actionDim)
+	{
+		std::cout << "Dimensions of upper output bounds do not match: " << maxComp.size() << " != " << actionDim << std::endl;
+		maxComp.clear();
+		for(int i=0;i<actionDim;i++) maxComp.push_back(1);
 	}
 	std::vector<double> c_k = config.getDoubleVector(config_prefix + "k", k);
 	if(c_k.size() != actionDim)

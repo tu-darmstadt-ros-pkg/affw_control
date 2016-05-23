@@ -24,7 +24,10 @@ public:
 	virtual void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState) = 0;
 	virtual Vector getActionCompensation(const Vector& state, const Vector& target) = 0;
 	virtual void write(const std::string& folder) = 0;
-private:
+protected:
+
+	std::vector<double> upperInputBounds;
+	std::vector<double> upperOutputBounds;
 };
 
 } /* namespace affw */

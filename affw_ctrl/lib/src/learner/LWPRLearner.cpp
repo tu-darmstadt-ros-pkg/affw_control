@@ -27,8 +27,6 @@ LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
 	// lwpr parameters
 	std::string config_prefix = "lwpr.";
 	cutoff = config.getDouble(config_prefix + "cutoff", 0.001);
-	doubleVec normIn;
-	normIn = config.getDoubleVector(config_prefix + "normIn", normIn);
 	lwpr_config = config.getString(config_prefix + "lwpr_config", "lwpr");
 	std::string configPath = dataFolder + "/" + lwpr_config + ".bin";
 
@@ -48,16 +46,11 @@ LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
 	}
 
 	// normalization
-	if(normIn.size() == actionDim)
+	if(upperInputBounds.size() == actionDim*(1+nFrames) && upperOutputBounds.size() == actionDim)
 	{
-		doubleVec norm;
-		for(int j=0;j<nFrames+1;j++)
-		{
-			for(int i=0;i<actionDim;i++)
-				norm.push_back(normIn[i]);
-		}
-		model->normIn(norm);
-	} else if(!normIn.empty()){
+		model->normIn(upperInputBounds);
+		model->normOut(upperOutputBounds);
+	} else {
 		std::cout << "Invalid normalization." << std::endl;
 	}
 
