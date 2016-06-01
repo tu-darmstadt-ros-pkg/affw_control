@@ -19,6 +19,9 @@ target_link_libraries(affw lwpr fann ${Boost_LIBRARIES})
 add_executable(affw_test test/testLearner.cpp)
 target_link_libraries(affw_test affw)
 
+add_executable(batchLearnFann test/batchLearnFann.cpp)
+target_link_libraries(batchLearnFann fann)
+
 
 install(TARGETS affw
         RUNTIME DESTINATION bin
