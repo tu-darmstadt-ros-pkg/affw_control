@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <ostream>
 #include <map>
 
 namespace affw {
@@ -37,10 +38,18 @@ public:
 
 	std::vector<double> getDoubleVector(const std::string& key, const std::vector<double>& defValue);
 	void setDoubleVector(const std::string& key, const std::vector<double>& value);
-private:
+
 	std::map<std::string, std::string> map;
+
+
+	friend std::ostream& operator<< (std::ostream& stream, const affw::Config& config);
 };
 
 } /* namespace affw */
+
+
+//std::ostream& operator<< (std::ostream& stream, const affw::Config& config);
+
+
 
 #endif /* AFFW_CTRL_SRC_CONFIG_H_ */

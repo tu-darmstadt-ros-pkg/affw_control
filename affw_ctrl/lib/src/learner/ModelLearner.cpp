@@ -48,4 +48,5 @@ ModelLearner::ModelLearner(Config& config, DataMapper* dataMapper) {
 ModelLearner::~ModelLearner() {
 }
 
+
 } /* namespace affw */

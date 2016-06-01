@@ -5,3 +5,6 @@ float32[] state
 float32[] target
 float32[] action
 float32[] actionComp
+float32[] nextState
+float32[] nextActionComp
+float32[] learnerDebug

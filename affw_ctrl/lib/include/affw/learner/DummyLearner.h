@@ -16,8 +16,14 @@ class DummyLearner: public ModelLearner {
 public:
 	DummyLearner(Config& config, DataMapper* dataMapper);
 	virtual ~DummyLearner();
-	void addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState);
-	Vector getActionCompensation(const Vector& state, const Vector& target);
+	void addData(	const Vector& state,
+					const Vector& target,
+					const Vector& action,
+					const Vector& actionComp,
+					const Vector& nextState,
+						  Vector& y);
+	Vector getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug);
+	void read(const std::string& folder);
 	void write(const std::string& folder);
 };
 

@@ -20,30 +20,14 @@ LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
 	dataMapper = dm;
 	int nFrames = config.getInt("nFrames", 1);
 	int actionDim = config.getInt("actionDim", 1);
-	std::string dataFolder = config.getString("dataFolder", "");
-	bool loadModel = config.getBool("reload_model", false);
-	bool reset = config.getBool("reset", true);
 
 	// lwpr parameters
 	std::string config_prefix = "lwpr.";
 	cutoff = config.getDouble(config_prefix + "cutoff", 0.001);
-	lwpr_config = config.getString(config_prefix + "lwpr_config", "lwpr");
-	std::string configPath = dataFolder + "/" + lwpr_config + ".bin";
+	lwpr_config = "lwpr";
 
-	if(loadModel && !reset && boost::filesystem::exists(configPath))
-	{
-		// load model
-		model = new LWPR_Object(configPath.c_str());
-		std::cout << "Reusing existing model with " << model->nData() << " nData." << std::endl;
-
-		if(model->nOut() != actionDim)
-		{
-			std::cerr << "Invalid LWPR model: actionDim does not match (" <<model->nOut() << "!=" << actionDim << std::endl;
-		}
-	} else {
-		// create new model
-		model = new LWPR_Object(actionDim*(1+nFrames),actionDim);
-	}
+	// create new model
+	model = new LWPR_Object(actionDim*(1+nFrames),actionDim);
 
 	// normalization
 	if(upperInputBounds.size() == actionDim*(1+nFrames) && upperOutputBounds.size() == actionDim)
@@ -76,9 +60,15 @@ LWPR_Learner::~LWPR_Learner() {
 }
 
 
-void LWPR_Learner::addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState)
+void LWPR_Learner::addData(
+		const Vector& state,
+		const Vector& target,
+		const Vector& action,
+		const Vector& actionComp,
+		const Vector& nextState,
+			  Vector& y)
 {
-	std::vector<double> x,y;
+	Vector x;
 	dataMapper->getInput(state, target, x);
 	dataMapper->getOutput(state, target, action, actionComp, nextState, y);
 
@@ -90,23 +80,46 @@ void LWPR_Learner::addData(const Vector& state, const Vector& target, const Vect
 	}
 }
 
-Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target)
+Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
-	doubleVec x,yp;
+	doubleVec x,yp,wMax;
 	dataMapper->getInput(state, target, x);
 
 	try {
-		yp = model->predict(x, cutoff);
+		yp = model->predict(x, learnerDebug, wMax, cutoff);
 	} catch(LWPR_Exception& e)
 	{
 		std::cerr << "getActionComp: LWPR error: " << e.getString()
 				<< state.size() << " " << target.size() << " " << x.size() << std::endl;
 	}
+
+	learnerDebug.insert(learnerDebug.end(), wMax.begin(), wMax.end());
+
+	for(int i=0;i<yp.size();i++)
+	{
+		yp[i] = fminf(upperOutputBounds[i], yp[i]);
+		yp[i] = fmaxf(-upperOutputBounds[i], yp[i]);
+	}
 	return yp;
+}
+
+void LWPR_Learner::read(const std::string& folder)
+{
+	std::string configPath = folder + "/" + lwpr_config + ".bin";
+	if(boost::filesystem::exists(configPath))
+	{
+		model = new LWPR_Object(configPath.c_str());
+		std::cout << "Reusing existing model with " << model->nData() << " nData." << std::endl;
+	}
+//	if(model->nOut() != actionDim)
+//	{
+//		std::cerr << "Invalid LWPR model: actionDim does not match (" <<model->nOut() << "!=" << actionDim << std::endl;
+//	}
 }
 
 void LWPR_Learner::write(const std::string& folder)
 {
+	std::cout << "Save LWPR model to " << folder << std::endl;
 	model->writeBinary((folder + "/" + lwpr_config + ".bin").c_str());
 	model->writeXML((folder + "/" + lwpr_config + ".xml").c_str());
 }

@@ -15,6 +15,7 @@
 namespace affw {
 
 typedef std::map<std::string, std::string>::iterator it_type;
+typedef std::map<std::string, std::string>::const_iterator it_type_const;
 
 Config::Config() {
 }
@@ -68,6 +69,15 @@ void Config::print() {
 	{
 		std::cout << it->first << "=" << it->second << std::endl;
 	}
+}
+
+std::ostream& operator<< (std::ostream& stream, const Config& config)
+{
+	for(it_type_const it = config.map.begin(); it != config.map.end(); it++)
+	{
+		stream << it->first << "=" << it->second << std::endl;
+	}
+	return stream;
 }
 
 std::string Config::getString(const std::string& key, const std::string& defValue) {

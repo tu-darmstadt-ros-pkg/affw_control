@@ -21,10 +21,10 @@ FANNLearner::FANNLearner(Config& config, DataMapper* dataMapper)
 	int actionDim = config.getInt("actionDim", 1);
 	const unsigned int num_input = (1+nFrames) * actionDim;
 	const unsigned int num_output = actionDim;
-	const unsigned int num_layers = 3;
-	const unsigned int num_neurons_hidden = 3;
+	const unsigned int num_layers = 4;
+	const unsigned int num_neurons_hidden = 8;
 
-	ann = fann_create_standard(num_layers, num_input, num_neurons_hidden, num_output);
+	ann = fann_create_standard(num_layers, num_input, num_neurons_hidden, 8, num_output);
 
 	fann_set_activation_function_hidden(ann, FANN_SIGMOID_SYMMETRIC);
 	fann_set_activation_function_output(ann, FANN_SIGMOID_SYMMETRIC);
@@ -38,9 +38,15 @@ FANNLearner::~FANNLearner() {
 
 
 
-void FANNLearner::addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState)
+void FANNLearner::addData(
+		const Vector& state,
+		const Vector& target,
+		const Vector& action,
+		const Vector& actionComp,
+		const Vector& nextState,
+			  Vector& y)
 {
-	std::vector<double> x,y;
+	Vector x;
 	dataMapper->getInput(state, target, x);
 	dataMapper->getOutput(state, target, action, actionComp, nextState, y);
 	struct fann_train_data *train_data;
@@ -62,7 +68,7 @@ void FANNLearner::addData(const Vector& state, const Vector& target, const Vecto
 	fann_destroy_train(train_data);
 }
 
-Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& target)
+Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
 	std::vector<double> x,y;
 	dataMapper->getInput(state, target, x);
@@ -75,6 +81,11 @@ Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& tar
 	for(int i=0;i<nOut;i++)
 		y[i] = output[i] * upperOutputBounds[i];
 	return y;
+}
+
+
+void FANNLearner::read(const std::string& folder)
+{
 }
 
 void FANNLearner::write(const std::string& folder)

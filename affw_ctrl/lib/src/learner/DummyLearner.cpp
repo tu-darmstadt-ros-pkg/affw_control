@@ -18,14 +18,25 @@ DummyLearner::DummyLearner(Config& config, DataMapper* dataMapper)
 DummyLearner::~DummyLearner() {
 }
 
-void DummyLearner::addData(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState)
+void DummyLearner::addData(
+		const Vector& state,
+		const Vector& target,
+		const Vector& action,
+		const Vector& actionComp,
+		const Vector& nextState,
+			  Vector& y)
 {
+	y.resize(actionComp.size(), 0);
 }
 
-Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target)
+Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
 	Vector v(target.size());
 	return v;
+}
+
+void DummyLearner::read(const std::string& folder)
+{
 }
 
 void DummyLearner::write(const std::string& folder)
