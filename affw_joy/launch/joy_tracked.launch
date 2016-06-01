@@ -4,15 +4,16 @@
 	<param name="joy/deadzone" value="0.33" />
 	<node name="joy" pkg="joy" type="joy_node" output="screen" />
 	
-	<param name="vDef" value="1" />
-	<param name="vMax" value="3" />
+	<param name="vDef" value="0.5" />
+	<param name="vMax" value="1" />
 	<param name="dccDef" value="2" />
 	<param name="dccMax" value="4" />
 	<param name="accDef" value="2" />
 	<param name="accMax" value="3" />
-	<param name="rotateDef" value="3" />
-	<param name="rotateMax" value="6" />
-	<param name="rotateMin" value="0.5" />
+	<param name="rotateDef" value="0.3" />
+	<param name="rotateMax" value="0.6" />
+	<param name="rotateMin" value="0.1" />
 	<param name="affw" value="$(arg affw)" />
+	<param name="cmd_vel_topic" value="cmd_vel_raw" />
 	<node name="affw_joy" pkg="affw_joy" type="joy2vel" output="screen" />
 </launch>

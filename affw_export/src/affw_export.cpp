@@ -7,7 +7,7 @@
 
 #include <affw_msgs/ProcTime.h>
 #include <affw_msgs/TargetRequest.h>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 #include <ros/init.h>
 #include <ros/node_handle.h>
@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <signal.h>
+#include <time.h>
 #include <tf/tf.h>
 
 #define LOG_AFFW 0
@@ -53,6 +54,8 @@ double getOrientation(geometry_msgs::Quaternion gq) {
 
 void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 
+	double dim = tr->target.size();
+	double stateSize = tr->state.size();
 	if(data[LOG_AFFW].empty() && !folderCustom.empty())
 	{
 		std::ofstream fDim(std::string(folderCustom + "/dimensions.csv").c_str());
@@ -64,6 +67,18 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 		std::ofstream fDim(std::string(folder + "/dimensions.csv").c_str());
 		fDim << tr->state.size() << " " << tr->target.size() << std::endl;
 		fDim.close();
+	}
+
+	if(tr->action.size() != dim ||
+			tr->actionComp.size() != dim ||
+			tr->nextState.size() != dim ||
+			tr->nextActionComp.size() != dim)
+	{
+		ROS_ERROR_STREAM("Invalid dimensions: "
+				<< tr->action.size() << " "
+				<< tr->actionComp.size() << " "
+				<< tr->nextState.size() << " "
+				<< tr->nextActionComp.size() << " ");
 	}
 
 	std::vector<double> ds;
@@ -81,6 +96,13 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 
 	ds.push_back(tr->timeAction2StateOffset.toSec());
 	ds.push_back(tr->timeStateDelayOffset.toSec());
+
+	for (int i = 0; i < tr->nextState.size(); i++)
+		ds.push_back(tr->nextState[i]);
+	for (int i = 0; i < tr->nextActionComp.size(); i++)
+		ds.push_back(tr->nextActionComp[i]);
+	for (int i = 0; i < tr->learnerDebug.size(); i++)
+		ds.push_back(tr->learnerDebug[i]);
 
 	data[LOG_AFFW].push_back(ds);
 	dataAll[LOG_AFFW].push_back(ds);
@@ -196,12 +218,71 @@ void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
 	}
 }
 
+void copyDir(boost::filesystem::path source, boost::filesystem::path dest)
+{
+	boost::filesystem::create_directories(dest);
+	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+	for ( boost::filesystem::directory_iterator itr( source );
+		itr != end_itr;
+		++itr )
+	{
+		if(boost::filesystem::is_directory(itr->path()))
+		{
+			copyDir(itr->path(), dest / itr->path().filename());
+		} else {
+			boost::filesystem::copy(itr->path(), dest / itr->path().filename());
+		}
+	}
+}
+
+void removeAll(boost::filesystem::path p)
+{
+	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
+	for ( boost::filesystem::directory_iterator itr( p );
+		itr != end_itr;
+		++itr )
+	{
+//		if(boost::filesystem::is_directory(itr->path()))
+//		{
+////			removeAll(itr->path());
+//			boost::filesystem::remove_all(itr->path());
+//		} else {
+//			boost::filesystem::remove(itr->path());
+//		}
+		boost::filesystem::remove_all(itr->path());
+	}
+}
+
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "affw_export");
 	ros::NodeHandle n;
 	ros::param::get("dataFolder", folder);
-	bool split = false;
-	ros::param::get("split", split);
+
+	time_t rawtime;
+	time (&rawtime);
+	struct tm * timeinfo = localtime (&rawtime);
+	char buffer [80];
+	strftime (buffer,80,"%F_%H-%M-%S",timeinfo);
+
+	boost::filesystem::path p(folder);
+	boost::filesystem::path parent = p.parent_path();
+	std::string backupPath = parent.string() + "/" + buffer + "_" + p.filename().string();
+
+	if(boost::filesystem::exists(p))
+	{
+		boost::filesystem::path bp(backupPath);
+		copyDir(p, bp);
+		removeAll(p);
+	} else {
+		boost::filesystem::create_directories(p);
+	}
+
+	std::string odom_topic = "odom";
+	std::string state_topic = "state";
+	std::string cmd_vel_topic = "cmd_vel";
+	ros::param::get("odom_topic", odom_topic);
+	ros::param::get("state_topic", state_topic);
+	ros::param::get("cmd_vel_topic", cmd_vel_topic);
 
 	ros::Subscriber sub_dataFolder = n.subscribe("dataFolder", 1, callbackDataFolder);
 
@@ -210,9 +291,9 @@ int main(int argc, char **argv) {
 			callbackAffw);
 	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 50,
 			callbackProcTime);
-	ros::Subscriber sub_odom = n.subscribe("odom", 50, callbackOdom);
-	ros::Subscriber sub_state = n.subscribe("state", 50, callbackState);
-	ros::Subscriber sub_set = n.subscribe("cmd_vel", 50, callbackSet);
+	ros::Subscriber sub_odom = n.subscribe(odom_topic, 50, callbackOdom);
+	ros::Subscriber sub_state = n.subscribe(state_topic, 50, callbackState);
+	ros::Subscriber sub_set = n.subscribe(cmd_vel_topic, 50, callbackSet);
 
 	signal(SIGINT, mySigintHandler);
 

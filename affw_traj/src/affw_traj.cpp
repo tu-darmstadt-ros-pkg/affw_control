@@ -38,6 +38,7 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 ros::Publisher pub_cmd_vel;
 ros::Publisher pub_set_vel;
 ros::Publisher pub_dataFolder;
+ros::Publisher pub_saveModel;
 bool running = true;
 
 bool moveTo(geometry_msgs::Pose& targetPose)
@@ -77,7 +78,10 @@ bool executeTraj(std::vector<geometry_msgs::TwistStamped>& setpoints, ros::Publi
 	std::vector<geometry_msgs::TwistStamped>::iterator it = setpoints.begin();
 	do {
 		geometry_msgs::TwistStamped vel = *it;
-//		std::cout << vel.header.stamp << std::endl;
+//		std::cout << vel.header.stamp << " " <<
+//				vel.twist.linear.x << " " <<
+//				vel.twist.linear.y << " " <<
+//				vel.twist.angular.z << std::endl;
 		vel.header.stamp += tStart;
 		pub_set_vel.publish(vel);
 		ros::spinOnce();
@@ -115,13 +119,17 @@ int main(int argc, char **argv) {
 	pub_set_vel = n.advertise<geometry_msgs::TwistStamped>(
 			"/affw_ctrl/target_vel", 1);
 	pub_dataFolder = n.advertise<std_msgs::String>("dataFolder", 1);
-	pub_cmd_vel = n.advertise<geometry_msgs::TwistStamped>("/cmd/vel", 1);
+	pub_saveModel = n.advertise<std_msgs::String>("/affw_ctrl/save_model", 1);
+	pub_cmd_vel = n.advertise<geometry_msgs::Twist>("/cmd/vel", 1);
 
 	if(argc != 2)
 	{
 		std::cout << "Usage: " << argv[0] << " <traj-file>" << std::endl;
 		return 1;
 	}
+
+	bool useInitPos = true;
+	ros::param::get("useInitPos", useInitPos);
 
 	int numIterations = 3;
 	double initPosW = 0;
@@ -161,7 +169,7 @@ int main(int argc, char **argv) {
 	for(int i = 0;i < numIterations;i++)
 	{
 		ROS_INFO("Start iteration %d", i);
-		if(!moveTo(initPose))
+		if(useInitPos && !moveTo(initPose))
 		{
 			break;
 		}
@@ -169,12 +177,15 @@ int main(int argc, char **argv) {
 		ROS_INFO("Start trajectory");
 		dataFolderMsg.data = dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i);
 		pub_dataFolder.publish(dataFolderMsg);
+		ros::spinOnce();
 		if(!executeTraj(setpoints, pub_set_vel))
 		{
 			break;
 		}
+		pub_saveModel.publish(dataFolderMsg);
 		dataFolderMsg.data = "";
 		pub_dataFolder.publish(dataFolderMsg);
+		ros::spinOnce();
 	}
 
 	return 0;

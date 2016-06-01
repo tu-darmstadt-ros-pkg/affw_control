@@ -1,0 +1,12 @@
+<launch>
+	<node name="affw_traj" pkg="affw_traj" type="affw_traj" required="true" output="screen" args="/tmp/traj.csv" />
+    	
+    <param name="numIterations" value="5" />
+    <param name="initPosX" value="0.0" />
+    <param name="initPosY" value="0.0" />
+    <param name="initPosW" value="0.0" />
+    <param name="useInitPos" value="false" />
+    	
+	<arg name="export" default="true" />
+	<include if="$(arg export)" file="$(find affw_export)/launch/export_tracked.launch" />
+</launch>

@@ -90,6 +90,7 @@ int main(int argc, char **argv) {
 	ros::NodeHandle n;
 
 	bool affw = false;
+	std::string cmd_vel_topic = "cmd_vel";
 	ros::param::param<double>("vDef", vDef, vDef);
 	ros::param::param<double>("vMax", vMax, vMax);
 	ros::param::param<double>("dccDef", dccDef, dccDef);
@@ -100,6 +101,7 @@ int main(int argc, char **argv) {
 	ros::param::param<double>("rotateMax", rotateMax, rotateMax);
 	ros::param::param<double>("rotateMin", rotateMin, rotateMin);
 	ros::param::param<bool>("affw", affw, affw);
+	ros::param::get("cmd_vel_topic", cmd_vel_topic);
 
 	// affw enabled?
 	if(affw)
@@ -107,7 +109,7 @@ int main(int argc, char **argv) {
 	else
 		ROS_INFO("affw disabled");
 
-	pub_vel_cmd = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+	pub_vel_cmd = n.advertise<geometry_msgs::Twist>(cmd_vel_topic, 1);
 	ros::Publisher pub_vel_target = n.advertise<geometry_msgs::TwistStamped>("/affw_ctrl/target_vel", 1);
 	ros::Subscriber sub_joy = n.subscribe("/joy", 1, callbackJoy);
 
