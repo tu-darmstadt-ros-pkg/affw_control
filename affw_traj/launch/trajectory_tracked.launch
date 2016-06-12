@@ -1,7 +1,11 @@
 <launch>
 	<node name="affw_traj" pkg="affw_traj" type="affw_traj" required="true" output="screen" args="/tmp/traj.csv" />
     	
-    <param name="numIterations" value="5" />
+    <arg name="nIt" default="1" />
+    <arg name="useInitPos" default="true" />
+    	
+    	
+    <param name="numIterations" value="$(arg nIt)" />
     <param name="initPosX" value="0.0" />
     <param name="initPosY" value="0.0" />
     <param name="initPosW" value="0.0" />
