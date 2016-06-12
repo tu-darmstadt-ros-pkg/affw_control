@@ -157,7 +157,10 @@ void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
 void save(std::string& folder, std::string& logFile, std::vector<std::vector<double> >& dat)
 {
 	std::string filepath = folder + "/" + logFile;
-	boost::filesystem::remove(filepath);
+	if(boost::filesystem::exists(filepath))
+	{
+		boost::filesystem::remove(filepath);
+	}
 	std::ofstream f;
 	f.open(filepath.c_str());
 	f << std::fixed << std::setw(11) << std::setprecision(6);
@@ -220,7 +223,12 @@ void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
 
 void copyDir(boost::filesystem::path source, boost::filesystem::path dest)
 {
-	boost::filesystem::create_directories(dest);
+	bool newDirCreated = boost::filesystem::create_directories(dest);
+	if(!newDirCreated)
+	{
+		ROS_ERROR_STREAM("Could not create new directory: " << dest.string());
+		return;
+	}
 	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
 	for ( boost::filesystem::directory_iterator itr( source );
 		itr != end_itr;
@@ -230,7 +238,12 @@ void copyDir(boost::filesystem::path source, boost::filesystem::path dest)
 		{
 			copyDir(itr->path(), dest / itr->path().filename());
 		} else {
-			boost::filesystem::copy(itr->path(), dest / itr->path().filename());
+			try {
+				boost::filesystem::copy(itr->path(), dest / itr->path().filename());
+			} catch(std::exception& e)
+			{
+				ROS_ERROR_STREAM("Could not copy file: " << itr->path() << " to " << (dest / itr->path().filename()));
+			}
 		}
 	}
 }
@@ -258,24 +271,36 @@ int main(int argc, char **argv) {
 	ros::NodeHandle n;
 	ros::param::get("dataFolder", folder);
 
-	time_t rawtime;
-	time (&rawtime);
-	struct tm * timeinfo = localtime (&rawtime);
-	char buffer [80];
-	strftime (buffer,80,"%F_%H-%M-%S",timeinfo);
-
 	boost::filesystem::path p(folder);
-	boost::filesystem::path parent = p.parent_path();
-	std::string backupPath = parent.string() + "/" + buffer + "_" + p.filename().string();
-
-	if(boost::filesystem::exists(p))
+	int i = 0;
+	while(boost::filesystem::exists(p))
 	{
-		boost::filesystem::path bp(backupPath);
-		copyDir(p, bp);
-		removeAll(p);
-	} else {
-		boost::filesystem::create_directories(p);
+		if(i > 5)
+		{
+			std::cerr << "Old data folder present. Exiting...";
+			return 1;
+		}
+		ros::Duration(0.1).sleep();
+		i++;
 	}
+
+//	time_t rawtime;
+//	time (&rawtime);
+//	struct tm * timeinfo = localtime (&rawtime);
+//	char buffer [80];
+//	strftime (buffer,80,"%F_%H-%M-%S",timeinfo);
+//
+//	boost::filesystem::path p(folder);
+//	boost::filesystem::path parent = p.parent_path();
+//	std::string backupPath = parent.string() + "/" + buffer + "_" + p.filename().string();
+//
+//	if(boost::filesystem::exists(p))
+//	{
+//		boost::filesystem::path bp(backupPath);
+//		copyDir(p, bp);
+//		removeAll(p);
+//	}
+	boost::filesystem::create_directories(p);
 
 	std::string odom_topic = "odom";
 	std::string state_topic = "state";
@@ -287,13 +312,13 @@ int main(int argc, char **argv) {
 	ros::Subscriber sub_dataFolder = n.subscribe("dataFolder", 1, callbackDataFolder);
 
 	// subscribe to topics
-	ros::Subscriber sub_affw = n.subscribe("/affw_ctrl/target_request", 50,
+	ros::Subscriber sub_affw = n.subscribe("/affw_ctrl/target_request", 10,
 			callbackAffw);
-	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 50,
+	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 10,
 			callbackProcTime);
-	ros::Subscriber sub_odom = n.subscribe(odom_topic, 50, callbackOdom);
-	ros::Subscriber sub_state = n.subscribe(state_topic, 50, callbackState);
-	ros::Subscriber sub_set = n.subscribe(cmd_vel_topic, 50, callbackSet);
+	ros::Subscriber sub_odom = n.subscribe(odom_topic, 10, callbackOdom);
+	ros::Subscriber sub_state = n.subscribe(state_topic, 10, callbackState);
+	ros::Subscriber sub_set = n.subscribe(cmd_vel_topic, 10, callbackSet);
 
 	signal(SIGINT, mySigintHandler);
 
