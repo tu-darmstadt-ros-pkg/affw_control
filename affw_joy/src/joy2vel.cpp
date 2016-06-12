@@ -36,6 +36,7 @@ double accMax = 4;
 double rotateDef = 5;
 double rotateMax = 10;
 double rotateMin = 1;
+double accW_ = 25;
 
 double uDcc = 0;
 double uAcc = 0;
@@ -149,7 +150,16 @@ int main(int argc, char **argv) {
 			curVel.linear.y = targetVel.linear.y;
 		}
 
-		curVel.angular.z = targetVel.angular.z;
+		double dw = targetVel.angular.z - curVel.angular.z;
+		double accW = accW_;
+		if(dw < 0) accW *= -1;
+		if(fabsf(dw) > (fabsf(accW) * dt))
+		{
+			curVel.angular.z = curVel.angular.z + accW * dt;
+		} else
+		{
+			curVel.angular.z = targetVel.angular.z;
+		}
 
 		if(affw)
 		{
