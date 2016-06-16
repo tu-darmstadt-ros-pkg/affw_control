@@ -12,24 +12,19 @@ namespace affw {
 
 
 ModelLearner::ModelLearner(Config& config, DataMapper* dataMapper) {
-	int nFrames = config.getInt("nFrames", 1);
 	int actionDim = config.getInt("actionDim", 1);
+	int stateDim = config.getInt("stateDim", 1);
 
 	upperInputBounds = config.getDoubleVector("upperInputBounds", upperInputBounds);
 	if(upperInputBounds.empty())
 	{
 		std::cout << "No upper input bounds set!" << std::endl;
-		for(int i=0;i<actionDim;i++) upperInputBounds.push_back(10);
-	} else if(upperInputBounds.size() != actionDim)
+		for(int i=0;i<stateDim;i++) upperInputBounds.push_back(1);
+	} else if(upperInputBounds.size() != stateDim)
 	{
-		std::cout << "Dimensions of upper input bounds do not match: " << upperInputBounds.size() << " != " << actionDim << std::endl;
+		std::cout << "Dimensions of upper input bounds do not match: " << upperInputBounds.size() << " != " << stateDim << std::endl;
 		upperInputBounds.clear();
-		for(int i=0;i<actionDim;i++) upperInputBounds.push_back(10);
-	}
-	for(int j=0;j<nFrames;j++)
-	{
-		for(int i=0;i<actionDim;i++)
-			upperInputBounds.push_back(upperInputBounds[i]);
+		for(int i=0;i<stateDim;i++) upperInputBounds.push_back(1);
 	}
 
 	upperOutputBounds = config.getDoubleVector("upperOutputBounds", upperOutputBounds);

@@ -48,9 +48,9 @@ KTermStateTarget2ActionCompMapper::~KTermStateTarget2ActionCompMapper() {
 void KTermStateTarget2ActionCompMapper::getInput(const Vector& state, const Vector& target, std::vector<double>& oVec)
 {
 	oVec.clear();
-	oVec.reserve(state.size()+target.size());
+//	oVec.reserve(state.size()+target.size());
 	oVec.insert(oVec.end(), state.begin(), state.end());
-	oVec.insert(oVec.end(), target.begin(), target.end());
+//	oVec.insert(oVec.end(), target.begin(), target.end());
 }
 void KTermStateTarget2ActionCompMapper::getOutput(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState, std::vector<double>& oVec)
 {
@@ -65,14 +65,17 @@ void KTermStateTarget2ActionCompMapper::getOutput(const Vector& state, const Vec
 		return;
 	}
 
-	oVec.clear();
-	oVec.resize(dim);
+	oVec.resize(dim, 0);
 
 	for(int i=0;i<dim;i++) {
 		oVec[i] = actionComp[i];
 	}
 	for(int i=dim-1; i>=0;i--) {
 		double diff = ( target[i] - nextState[i] );
+		if(diff > 1)
+			diff = 1;
+		if(diff < -1)
+			diff = -1;
 		double comp = k[i] * diff;
 		oVec[i] += comp;
 		if(oVec[i] > maxComp[i])

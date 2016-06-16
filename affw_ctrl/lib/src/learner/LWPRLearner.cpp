@@ -17,9 +17,9 @@ LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
 	: ModelLearner(config, dm)
 {
 	// common parameters
-	dataMapper = dm;
-	int nFrames = config.getInt("nFrames", 1);
 	int actionDim = config.getInt("actionDim", 1);
+	int stateDim = config.getInt("stateDim", 1);
+	dataMapper = dm;
 
 	// lwpr parameters
 	std::string config_prefix = "lwpr.";
@@ -27,10 +27,10 @@ LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
 	lwpr_config = "lwpr";
 
 	// create new model
-	model = new LWPR_Object(actionDim*(1+nFrames),actionDim);
+	model = new LWPR_Object(stateDim,actionDim);
 
 	// normalization
-	if(upperInputBounds.size() == actionDim*(1+nFrames) && upperOutputBounds.size() == actionDim)
+	if(upperInputBounds.size() == stateDim && upperOutputBounds.size() == actionDim)
 	{
 		model->normIn(upperInputBounds);
 		model->normOut(upperOutputBounds);
@@ -82,21 +82,33 @@ void LWPR_Learner::addData(
 
 Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
-	doubleVec x,yp,wMax;
+	doubleVec x,yp,conf,wMax;
 	dataMapper->getInput(state, target, x);
 
 	try {
-		yp = model->predict(x, learnerDebug, wMax, cutoff);
+		yp = model->predict(x, conf, wMax, cutoff);
 	} catch(LWPR_Exception& e)
 	{
 		std::cerr << "getActionComp: LWPR error: " << e.getString()
-				<< state.size() << " " << target.size() << " " << x.size() << std::endl;
+				<< state.size() << " " << target.size() << " " << x.size() << " " << model->nIn() << std::endl;
 	}
 
+	learnerDebug.insert(learnerDebug.end(), conf.begin(), conf.end());
 	learnerDebug.insert(learnerDebug.end(), wMax.begin(), wMax.end());
+	learnerDebug.insert(learnerDebug.end(), yp.begin(), yp.end());
 
 	for(int i=0;i<yp.size();i++)
 	{
+		// throw away if too uncertain
+//		double maxConf = 0.5; // upperOutputBounds[i];
+//		if(conf[i] > maxConf)
+//		{
+//			double c = std::min(conf[i], maxConf);
+//			yp[i] *= 1 - (c / maxConf);
+//			yp[i] = 0;
+//		}
+
+		// cut off at bounds
 		yp[i] = fminf(upperOutputBounds[i], yp[i]);
 		yp[i] = fmaxf(-upperOutputBounds[i], yp[i]);
 	}
@@ -111,17 +123,13 @@ void LWPR_Learner::read(const std::string& folder)
 		model = new LWPR_Object(configPath.c_str());
 		std::cout << "Reusing existing model with " << model->nData() << " nData." << std::endl;
 	}
-//	if(model->nOut() != actionDim)
-//	{
-//		std::cerr << "Invalid LWPR model: actionDim does not match (" <<model->nOut() << "!=" << actionDim << std::endl;
-//	}
 }
 
 void LWPR_Learner::write(const std::string& folder)
 {
 	std::cout << "Save LWPR model to " << folder << std::endl;
 	model->writeBinary((folder + "/" + lwpr_config + ".bin").c_str());
-	model->writeXML((folder + "/" + lwpr_config + ".xml").c_str());
+//	model->writeXML((folder + "/" + lwpr_config + ".xml").c_str());
 }
 
 }

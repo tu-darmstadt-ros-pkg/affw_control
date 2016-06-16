@@ -17,19 +17,20 @@ FANNLearner::FANNLearner(Config& config, DataMapper* dataMapper)
 	this->dataMapper = dataMapper;
 	std::string config_prefix = "fann.";
 
-	int nFrames = config.getInt("nFrames", 1);
 	int actionDim = config.getInt("actionDim", 1);
-	const unsigned int num_input = (1+nFrames) * actionDim;
+	int stateDim = config.getInt("stateDim", 1);
+	const unsigned int num_input = stateDim;
 	const unsigned int num_output = actionDim;
-	const unsigned int num_layers = 4;
+	const unsigned int num_layers = 3;
 	const unsigned int num_neurons_hidden = 8;
 
-	ann = fann_create_standard(num_layers, num_input, num_neurons_hidden, 8, num_output);
+	ann = fann_create_standard(num_layers, num_input, num_neurons_hidden, num_output);
 
 	fann_set_activation_function_hidden(ann, FANN_SIGMOID_SYMMETRIC);
 	fann_set_activation_function_output(ann, FANN_SIGMOID_SYMMETRIC);
 	fann_set_training_algorithm(ann, FANN_TRAIN_INCREMENTAL);
 	fann_set_train_error_function(ann, FANN_ERRORFUNC_LINEAR);
+	fann_set_activation_steepness_output(ann, 1.5);
 }
 
 FANNLearner::~FANNLearner() {
@@ -86,11 +87,13 @@ Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& tar
 
 void FANNLearner::read(const std::string& folder)
 {
+	fann_destroy(ann);
+	ann = fann_create_from_file((folder + "/fann.bin").c_str());
 }
 
 void FANNLearner::write(const std::string& folder)
 {
-
+	fann_save(ann, (folder + "/fann.bin").c_str());
 }
 
 } /* namespace affw */

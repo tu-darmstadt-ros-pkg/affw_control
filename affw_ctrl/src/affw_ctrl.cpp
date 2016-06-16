@@ -43,6 +43,8 @@
 #include "affw/learner/LWPRLearner.h"
 #include "affw/learner/FANNLearner.h"
 #include "affw/learner/ModelLearner.h"
+#include "affw/learner/FeedbackController.h"
+#include "affw/learner/WrapperLearner.h"
 #include "affw/affw_common.h"
 #include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
 
@@ -57,19 +59,25 @@ ros::Publisher processing_time_pub;
 boost::circular_buffer<affw_msgs::State>* latestStates = NULL;
 boost::circular_buffer<ros::Duration> action2StateOffsets(20);
 ros::Duration maxAction2StateOffset(0);
+ros::Duration avgAction2StateOffset(-1);
 boost::mutex m_mutex;
+affw::Vector lastActionComp;
 
 affw::ModelLearner* learner = NULL;
 affw::DataMapper* dataMapper = NULL;
 affw::Config config;
+
+affw_msgs::ActionRequest::Request lastReq;
 
 // configs
 ros::Duration timeStateDelayOffset(0.1);
 ros::Duration timeAction2StateOffset(-1.0);
 ros::Duration frameDt(0.01);
 bool updateModel = true;
-int dim = 0;
 int nFrames = 1;
+bool useAcc = true;
+bool interpState = false;
+bool useLastActionComp = false;
 std::string learner_type = "";
 std::string configFolder;
 std::string configName;
@@ -124,20 +132,75 @@ bool getStateAtTime(const ros::Time& stamp, const std::vector<affw_msgs::State>&
 bool actionRequest(affw_msgs::ActionRequest::Request &req,
 		affw_msgs::ActionRequest::Response &res) {
 
-	if(latestStates == NULL || learner == NULL)
+	int dim = req.state.vel.size();
+	int stateDim = (nFrames + (useAcc?1:0) + 1 + (useLastActionComp?1:0)) * dim + req.state.custom.size();
+
+	if(learner == NULL)
+	{
+		config.setInt("actionDim", dim);
+		config.setInt("stateDim", stateDim);
+
+		dataMapper = new affw::KTermStateTarget2ActionCompMapper(config);
+		if(learner_type == "lwpr") {
+			learner = new affw::LWPR_Learner(config, dataMapper);
+			ROS_INFO("LWPR learner created");
+		} else if(learner_type == "fann")
+		{
+			learner = new affw::FANNLearner(config, dataMapper);
+			ROS_INFO("FANN learner created");
+		} else if(learner_type == "fdbk")
+		{
+			learner = new affw::FeedbackController(config, dataMapper);
+			ROS_INFO("Feedback Controller created");
+		} else if(learner_type == "wrap")
+		{
+			learner = new affw::WrapperLearner(config, dataMapper);
+			ROS_INFO("Wrapper learner created");
+		} else
+		{
+			learner = new affw::DummyLearner(config, dataMapper);
+			ROS_INFO("dummy learner created");
+		}
+
+		bool loadModel = config.getBool("reload_model", false);
+		if(loadModel)
+		{
+			learner->read(configFolder);
+		}
+	}
+
+	// get curStates
+	std::vector<affw_msgs::State> curStates;
+	boost::mutex::scoped_lock lock(m_mutex);
+	curStates.insert(curStates.end(), latestStates->begin(), latestStates->end());
+	lock.unlock();
+	if(curStates.empty())
 	{
 		return false;
 	}
 
-	// get curStates
-	boost::mutex::scoped_lock lock(m_mutex);
-	std::vector<affw_msgs::State> curStates;
-	curStates.insert(curStates.end(), latestStates->begin(), latestStates->end());
-	lock.unlock();
+	// prepare state for learner
+	std::vector<AFFW_FLOAT> state;
+	state.reserve(nFrames * dim);
 
-	if(curStates.empty())
+	// get acc
+	if(useAcc)
 	{
-		return false;
+		state.reserve((1+nFrames) * dim);
+		if(lastReq.state.vel.empty()) {
+			lastReq = req;
+		}
+
+		std::vector<AFFW_FLOAT> acc(req.state.vel.size());
+		double dt = (req.state.header.stamp - lastReq.state.header.stamp).toSec();
+		if(dt > 0)
+		{
+			for(int i=0;i<req.state.vel.size();i++)
+				acc[i] = (req.state.vel[i] - lastReq.state.vel[i]) / dt;
+		}
+		lastReq = req;
+
+		state.insert(state.end(), acc.begin(), acc.end());
 	}
 
 	// state to action offset calculation
@@ -147,11 +210,11 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	ros::Duration sum;
 	std::for_each(action2StateOffsets.begin(), action2StateOffsets.end(),
 	    [&](const ros::Duration& dur) {sum += dur;});
-	double avgTimeAction2StateOffset = sum.toSec() / action2StateOffsets.size();
-	if(fabsf(avgTimeAction2StateOffset - timeAction2StateOffset.toSec()) > 0.01)
+	double curAvgTimeAction2StateOffset = sum.toSec() / action2StateOffsets.size();
+	if(!avgAction2StateOffset.toSec() < 0 || fabsf(curAvgTimeAction2StateOffset - timeAction2StateOffset.toSec()) > 0.01)
 	{
-		timeAction2StateOffset = ros::Duration(avgTimeAction2StateOffset);
-		ROS_INFO_DELAYED_THROTTLE(1, "action to state timeOffset changed: %f", timeAction2StateOffset.toSec());
+		avgAction2StateOffset = ros::Duration(curAvgTimeAction2StateOffset);
+		ROS_INFO_DELAYED_THROTTLE(1, "action to state timeOffset changed: %f", curAvgTimeAction2StateOffset);
 	}
 
 	// max offset
@@ -159,11 +222,16 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	{
 		maxAction2StateOffset = curTimeAction2StateOffset;
 		ROS_INFO_DELAYED_THROTTLE(1, "max action to state timeOffset changed: %f (avg=%f)"
-				, maxAction2StateOffset.toSec(), avgTimeAction2StateOffset);
+				, maxAction2StateOffset.toSec(), avgAction2StateOffset.toSec());
 	}
 
-	std::vector<AFFW_FLOAT> state;
-	state.reserve(nFrames * dim);
+	if(interpState)
+	{
+		timeAction2StateOffset = avgAction2StateOffset;
+	} else {
+		timeAction2StateOffset = maxAction2StateOffset;
+	}
+
 	ros::Time stamp = req.state.header.stamp;
 	ros::Time actionStamp = stamp - timeAction2StateOffset;
 	bool validState = true;
@@ -178,7 +246,14 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	{
 		return false;
 	}
+
+	if(lastActionComp.empty())
+		lastActionComp.resize(dim, 0);
+
 	state.insert(state.end(), req.state.custom.begin(), req.state.custom.end());
+	state.insert(state.end(), req.state.vel.begin(), req.state.vel.end());
+	if(useLastActionComp)
+		state.insert(state.end(), lastActionComp.begin(), lastActionComp.end());
 
 	affw_msgs::TargetRequest tr;
 	tr.header.stamp = stamp + timeStateDelayOffset;
@@ -188,37 +263,36 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	tr.target = req.state.vel;
 	tr.action = req.state.vel;
 
-	if(state.size() == nFrames * dim + req.state.custom.size())
+	affw::Vector s(tr.state.begin(), tr.state.end());
+	affw::Vector t(tr.target.begin(), tr.target.end());
+	affw::Vector learnerDebug;
+
+	// get action compensation
+	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+	affw::Vector actionComp = learner->getActionCompensation(s, t, learnerDebug);
+	std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>( stop - start ).count();
+
+	lastActionComp = actionComp;
+
+	// export processing time
+	affw_msgs::ProcTime proc;
+	proc.stamp = tr.header.stamp;
+	proc.type = 1;
+	proc.procTime = duration;
+	processing_time_pub.publish(proc);
+
+	tr.actionComp.reserve(actionComp.size());
+	for(int i=0;i<actionComp.size(); i++)
 	{
-		affw::Vector s(tr.state.begin(), tr.state.end());
-		affw::Vector t(tr.target.begin(), tr.target.end());
-		affw::Vector learnerDebug;
-
-		// get action compensation
-		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-		affw::Vector actionComp = learner->getActionCompensation(s, t, learnerDebug);
-		std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
-	    auto duration = std::chrono::duration_cast<std::chrono::microseconds>( stop - start ).count();
-
-	    // export processing time
-		affw_msgs::ProcTime proc;
-		proc.stamp = tr.header.stamp;
-		proc.type = 1;
-		proc.procTime = duration;
-		processing_time_pub.publish(proc);
-
-		tr.actionComp.reserve(actionComp.size());
-		for(int i=0;i<actionComp.size(); i++)
-		{
-			tr.actionComp.push_back(actionComp[i]);
-			tr.action[i] += actionComp[i];
-		}
-		tr.learnerDebug.reserve(learnerDebug.size());
-		for(int i=0;i<learnerDebug.size();i++)
-			tr.learnerDebug.push_back(learnerDebug[i]);
-		target4Sync_pub.publish(tr);
-		ros::spinOnce();
+		tr.actionComp.push_back(actionComp[i]);
+		tr.action[i] += actionComp[i];
 	}
+	tr.learnerDebug.reserve(learnerDebug.size());
+	for(int i=0;i<learnerDebug.size();i++)
+		tr.learnerDebug.push_back(learnerDebug[i]);
+	target4Sync_pub.publish(tr);
+	ros::spinOnce();
 
 	res.outVel.insert(res.outVel.end(), tr.action.begin(), tr.action.end());
 	assert(res.outVel.size() == req.state.vel.size());
@@ -227,35 +301,6 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 }
 
 void feedbackStateCallback(const affw_msgs::State::ConstPtr& state) {
-
-	if(learner == NULL)
-	{
-		dim = state->vel.size();
-		config.setInt("actionDim", dim);
-		config.setInt("nFrames", nFrames);
-		latestStates = new boost::circular_buffer<affw_msgs::State>(nFrames*20);
-
-		dataMapper = new affw::KTermStateTarget2ActionCompMapper(config);
-		if(learner_type == "lwpr") {
-			learner = new affw::LWPR_Learner(config, dataMapper);
-			ROS_INFO("LWPR learner created");
-		} else if(learner_type == "fann")
-		{
-			learner = new affw::FANNLearner(config, dataMapper);
-			ROS_INFO("FANN learner created");
-		} else
-		{
-			learner = new affw::DummyLearner(config, dataMapper);
-			ROS_INFO("dummy learner created");
-		}
-
-		bool loadModel = config.getBool("reload_model", false);
-		if(loadModel)
-		{
-			learner->read(configFolder);
-		}
-	}
-
 	boost::mutex::scoped_lock lock(m_mutex);
 	latestStates->push_back(*state);
 	lock.unlock();
@@ -264,13 +309,14 @@ void feedbackStateCallback(const affw_msgs::State::ConstPtr& state) {
 void syncCallback(const affw_msgs::State::ConstPtr& state,
 		const affw_msgs::TargetRequest::ConstPtr& target)
 {
+	int dim = target->action.size();
 	affw::Vector
 		l_state,
 		l_target(dim),
 		l_action(dim),
 		l_action_compensation(dim),
 		l_next_state(dim),
-		l_y;
+		l_y(dim);
 
 	l_state.insert(l_state.end(), target->state.begin(), target->state.end());
 
@@ -313,6 +359,12 @@ void saveModelCallback(const std_msgs::String::ConstPtr& location) {
 void updateModelCallback(const std_msgs::Bool::ConstPtr& enabled)
 {
 	updateModel = enabled->data;
+	if(updateModel)
+	{
+		ROS_INFO("Update model enabled");
+	} else {
+		ROS_INFO("Update model disabled");
+	}
 }
 
 void mySigintHandler(int sig)
@@ -352,6 +404,9 @@ int main(int argc, char **argv) {
 	updateModel = config.getBool("updateModel", updateModel);
 	timeStateDelayOffset = ros::Duration(config.getDouble("timeOffset", timeStateDelayOffset.toSec()));
 	nFrames = config.getInt("nFrames", nFrames);
+	latestStates = new boost::circular_buffer<affw_msgs::State>(std::max(1,nFrames)*20);
+	useAcc = config.getBool("useAcc", useAcc);
+	interpState = config.getBool("interpState", interpState);
 
 	// debugging:
 	ROS_INFO_STREAM("Current config:" << std::endl << config);
@@ -374,7 +429,7 @@ int main(int argc, char **argv) {
 	ros::ServiceServer service = n.advertiseService("/affw_ctrl/action", actionRequest);
 	ros::Subscriber sub_fdbk_vel = n.subscribe("/affw_ctrl/state", 1, feedbackStateCallback, th);
 	ros::Subscriber sub_save = n.subscribe("/affw_ctrl/save_model", 1, saveModelCallback);
-	ros::Subscriber sub_updateModel = n.subscribe("/affw_ctrl/update_model", 1, updateModelCallback);
+	ros::Subscriber sub_updateModel = n.subscribe("/affw_ctrl/update_model", 10, updateModelCallback);
 
 
 	signal(SIGINT, mySigintHandler);
