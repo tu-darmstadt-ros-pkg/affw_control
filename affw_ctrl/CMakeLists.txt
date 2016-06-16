@@ -17,7 +17,7 @@ catkin_package(
   CATKIN_DEPENDS roscpp affw_msgs
 )
 
-include_directories(${affw_INCLUDE})
+include_directories(BEFORE lib/include)
 add_executable(affw_ctrl src/affw_ctrl.cpp)
 target_link_libraries(affw_ctrl ${catkin_LIBRARIES} affw)
 add_dependencies(affw_ctrl affw affw_msgs_generate_messages_cpp)
