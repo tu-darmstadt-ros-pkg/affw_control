@@ -43,19 +43,20 @@ int main(int argc, char **argv) {
 	} else {
 
 		ann = fann_create_standard(num_layers, num_input, num_neurons_hidden, num_output);
-		fann_set_activation_function_hidden(ann, FANN_GAUSSIAN_SYMMETRIC);
+		fann_set_activation_function_hidden(ann, FANN_SIGMOID_SYMMETRIC);
 		fann_set_activation_function_output(ann, FANN_SIGMOID_SYMMETRIC);
-		fann_set_training_algorithm(ann, FANN_TRAIN_RPROP);
-//		fann_set_training_algorithm(ann, FANN_TRAIN_QUICKPROP);
+//		fann_set_training_algorithm(ann, FANN_TRAIN_RPROP);
+		fann_set_training_algorithm(ann, FANN_TRAIN_QUICKPROP);
+//		fann_set_training_algorithm(ann, FANN_TRAIN_INCREMENTAL);
 		fann_set_train_error_function(ann, FANN_ERRORFUNC_LINEAR);
 
 //		fann_set_weight(ann, 0, 2, 0);
 //		fann_set_weight(ann, 1, 2, 0);
-		fann_set_activation_steepness_output(ann, 0.5);
+		fann_set_activation_steepness_output(ann, 1.5);
 		fann_set_learning_rate(ann, 0.1);
 
-		fann_train_on_data(ann, train_data, max_neurons, neurons_between_reports, desired_error);
-	//	fann_train_epoch(ann, train_data);
+//		fann_train_on_data(ann, train_data, max_neurons, neurons_between_reports, desired_error);
+		fann_train_epoch(ann, train_data);
 
 	}
 
@@ -104,13 +105,20 @@ int main(int argc, char **argv) {
 	}
 
 	std::ofstream myfile;
-	myfile.open ("/tmp/output");
+	myfile.open ("/tmp/input");
 	for(int i=0;i<test_data->num_data;i++)
 	{
 		for(int j=0;j<test_data->num_input;j++)
 		{
 			myfile << test_data->input[i][j] << " ";
 		}
+		myfile << std::endl;
+	}
+	myfile.close();
+
+	myfile.open ("/tmp/output");
+	for(int i=0;i<test_data->num_data;i++)
+	{
 		for(int j=0;j<test_data->num_output;j++)
 		{
 			myfile << test_data->output[i][j] << " ";
