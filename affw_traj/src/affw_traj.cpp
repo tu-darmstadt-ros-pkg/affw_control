@@ -24,6 +24,7 @@
 #include <rosconsole/macros_generated.h>
 #include <std_msgs/Header.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <tf/transform_datatypes.h>
 #include <iostream>
 #include <iterator>
@@ -119,6 +120,7 @@ int main(int argc, char **argv) {
 	pub_set_vel = n.advertise<geometry_msgs::TwistStamped>(
 			"/affw_ctrl/target_vel", 1);
 	pub_dataFolder = n.advertise<std_msgs::String>("dataFolder", 1);
+	ros::Publisher pub_updateModel = n.advertise<std_msgs::Bool>("/affw_ctrl/update_model", 1, true);
 	pub_saveModel = n.advertise<std_msgs::String>("/affw_ctrl/save_model", 1);
 	pub_cmd_vel = n.advertise<geometry_msgs::Twist>("/cmd/vel", 1);
 
@@ -139,6 +141,9 @@ int main(int argc, char **argv) {
 	ros::param::get("initPosY", initPose.position.y);
 	ros::param::get("initPosW", initPosW);
 	initPose.orientation = tf::createQuaternionMsgFromYaw(initPosW);
+
+	int numEvalIterations = 0;
+	ros::param::get("numEvalIterations", numEvalIterations);
 
 	while(ros::Time::now().isZero());
 	const char* filename = argv[1];
@@ -166,13 +171,22 @@ int main(int argc, char **argv) {
 	int i = 0;
 	while(boost::filesystem::remove_all(dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i++)));
 
-	for(int i = 0;i < numIterations;i++)
+	for(int i = 0;i < numIterations + numEvalIterations;i++)
 	{
 		ROS_INFO("Start iteration %d", i);
 		if(useInitPos && !moveTo(initPose))
 		{
 			break;
 		}
+
+		if(i >= numIterations)
+		{
+			std_msgs::Bool b;
+			b.data = false;
+			pub_updateModel.publish(b);
+			ros::spinOnce();
+		}
+
 		ros::Duration(0.5).sleep();
 		ROS_INFO("Start trajectory");
 		dataFolderMsg.data = dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i);
@@ -187,6 +201,8 @@ int main(int argc, char **argv) {
 		pub_dataFolder.publish(dataFolderMsg);
 		ros::spinOnce();
 	}
+
+
 
 	return 0;
 }
