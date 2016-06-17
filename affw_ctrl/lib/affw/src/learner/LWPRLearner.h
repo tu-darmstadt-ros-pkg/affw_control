@@ -8,8 +8,7 @@
 #ifndef AFFW_CTRL_SRC_LWPRLEARNER_H_
 #define AFFW_CTRL_SRC_LWPRLEARNER_H_
 
-#include <affw/learner/ModelLearner.h>
-#include <affw/mapping/DataMapper.h>
+#include "ModelLearner.h"
 #include <string>
 #include <vector>
 #include <lwpr.hh>
@@ -18,14 +17,14 @@ namespace affw {
 
 class LWPR_Learner : public ModelLearner {
 public:
-	LWPR_Learner(Config& config, DataMapper* dataMapper);
+	LWPR_Learner(Config& config);
 	virtual ~LWPR_Learner();
 	void addData(	const Vector& state,
 					const Vector& target,
 					const Vector& action,
 					const Vector& actionComp,
 					const Vector& nextState,
-						  Vector& y);
+					const Vector& y);
 	Vector getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug);
 	void read(const std::string& folder);
 	void write(const std::string& folder);
@@ -35,11 +34,6 @@ private:
 
 	LWPR_Object* model;
 	double cutoff;
-
-	DataMapper* dataMapper;
-
-	std::vector<double> update(std::vector<double>, std::vector<double>);
-	std::vector<double> predict(std::vector<double>);
 };
 
 }

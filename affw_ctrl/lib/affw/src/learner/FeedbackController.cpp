@@ -5,14 +5,13 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/FeedbackController.h"
+#include "FeedbackController.h"
 
 namespace affw {
 
-FeedbackController::FeedbackController(Config& config, DataMapper* dataMapper)
-	: ModelLearner(config, dataMapper)
+FeedbackController::FeedbackController(Config& config)
+	: ModelLearner(config)
 {
-	this->dataMapper = dataMapper;
 }
 
 FeedbackController::~FeedbackController() {
@@ -24,24 +23,9 @@ void FeedbackController::addData(
 		const Vector& action,
 		const Vector& actionComp,
 		const Vector& nextState,
-			  Vector& y)
+		const Vector& y)
 {
-	Vector x;
-	dataMapper->getInput(state, target, x);
-	dataMapper->getOutput(state, target, action, actionComp, nextState, y);
 	this->actionComp = y;
-
-//	if(this->actionComp.size() != action.size())
-//	{
-//		this->actionComp.resize(action.size(), 0);
-//	}
-//
-//	for(int i=0;i<action.size();i++)
-//	{
-//		this->actionComp[i] = 1 * (nextState[i] - state[i]);
-//	}
-//
-//	y = this->actionComp;
 }
 
 Vector FeedbackController::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)

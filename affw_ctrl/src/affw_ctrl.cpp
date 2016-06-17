@@ -38,15 +38,7 @@
 #include <chrono>
 #include <signal.h>
 
-#include "affw/Config.h"
-#include "affw/learner/DummyLearner.h"
-#include "affw/learner/LWPRLearner.h"
-#include "affw/learner/FANNLearner.h"
-#include "affw/learner/ModelLearner.h"
-#include "affw/learner/FeedbackController.h"
-#include "affw/learner/WrapperLearner.h"
-#include "affw/affw_common.h"
-#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
+#include <affw/affw.h>
 
 typedef float AFFW_FLOAT;
 
@@ -142,23 +134,27 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 
 		dataMapper = new affw::KTermStateTarget2ActionCompMapper(config);
 		if(learner_type == "lwpr") {
-			learner = new affw::LWPR_Learner(config, dataMapper);
+			learner = new affw::LWPR_Learner(config);
 			ROS_INFO("LWPR learner created");
 		} else if(learner_type == "fann")
 		{
-			learner = new affw::FANNLearner(config, dataMapper);
+			learner = new affw::FANNLearner(config);
 			ROS_INFO("FANN learner created");
 		} else if(learner_type == "fdbk")
 		{
-			learner = new affw::FeedbackController(config, dataMapper);
+			learner = new affw::FeedbackController(config);
 			ROS_INFO("Feedback Controller created");
 		} else if(learner_type == "wrap")
 		{
-			learner = new affw::WrapperLearner(config, dataMapper);
+			learner = new affw::WrapperLearner(config);
 			ROS_INFO("Wrapper learner created");
+		} else if(learner_type == "oesgp")
+		{
+			learner = new affw::OESGPLearner(config);
+			ROS_INFO("OESGP learner created");
 		} else
 		{
-			learner = new affw::DummyLearner(config, dataMapper);
+			learner = new affw::DummyLearner(config);
 			ROS_INFO("dummy learner created");
 		}
 
@@ -327,6 +323,8 @@ void syncCallback(const affw_msgs::State::ConstPtr& state,
 		l_action_compensation[i] = target->actionComp[i];
 		l_next_state[i] = state->vel[i];
 	}
+
+	dataMapper->getOutput(l_state,l_target,l_action,l_action_compensation,l_next_state, l_y);
 
 	std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 	// update model

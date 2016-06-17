@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/mapping/DataMapper.h"
+#include "DataMapper.h"
 
 namespace affw {
 

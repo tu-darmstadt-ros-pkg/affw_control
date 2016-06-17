@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/LWPRLearner.h"
+#include "LWPRLearner.h"
 
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -13,13 +13,12 @@
 
 namespace affw {
 
-LWPR_Learner::LWPR_Learner(Config& config, DataMapper* dm)
-	: ModelLearner(config, dm)
+LWPR_Learner::LWPR_Learner(Config& config)
+	: ModelLearner(config)
 {
 	// common parameters
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
-	dataMapper = dm;
 
 	// lwpr parameters
 	std::string config_prefix = "lwpr.";
@@ -66,14 +65,10 @@ void LWPR_Learner::addData(
 		const Vector& action,
 		const Vector& actionComp,
 		const Vector& nextState,
-			  Vector& y)
+		const Vector& y)
 {
-	Vector x;
-	dataMapper->getInput(state, target, x);
-	dataMapper->getOutput(state, target, action, actionComp, nextState, y);
-
 	try {
-		doubleVec yp = model->update((doubleVec) x, (doubleVec) y);
+		doubleVec yp = model->update((doubleVec) state, (doubleVec) y);
 	} catch(LWPR_Exception& e)
 	{
 		std::cerr << "addData: LWPR error: " << e.getString() << std::endl;
@@ -82,15 +77,14 @@ void LWPR_Learner::addData(
 
 Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
-	doubleVec x,yp,conf,wMax;
-	dataMapper->getInput(state, target, x);
+	doubleVec yp,conf,wMax;
 
 	try {
-		yp = model->predict(x, conf, wMax, cutoff);
+		yp = model->predict(state, conf, wMax, cutoff);
 	} catch(LWPR_Exception& e)
 	{
-		std::cerr << "getActionComp: LWPR error: " << e.getString()
-				<< state.size() << " " << target.size() << " " << x.size() << " " << model->nIn() << std::endl;
+		std::cerr << "getActionComp: LWPR error: " << e.getString() << " stateSize:"
+				<< state.size() << " targetSize:" << target.size() << " modelInDim:" << model->nIn() << std::endl;
 	}
 
 	learnerDebug.insert(learnerDebug.end(), conf.begin(), conf.end());

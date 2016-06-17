@@ -5,12 +5,12 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/DummyLearner.h"
+#include "DummyLearner.h"
 
 namespace affw {
 
-DummyLearner::DummyLearner(Config& config, DataMapper* dataMapper)
-	: ModelLearner(config, dataMapper)
+DummyLearner::DummyLearner(Config& config)
+	: ModelLearner(config)
 {
 
 }
@@ -24,9 +24,8 @@ void DummyLearner::addData(
 		const Vector& action,
 		const Vector& actionComp,
 		const Vector& nextState,
-			  Vector& y)
+		const Vector& y)
 {
-	y.resize(actionComp.size(), 0);
 }
 
 Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)

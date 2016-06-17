@@ -11,7 +11,7 @@
 	<param name="accDef" value="2" />
 	<param name="accMax" value="3" />
 	<param name="rotateDef" value="3" />
-	<param name="rotateMax" value="6" />
+	<param name="rotateMax" value="5" />
 	<param name="rotateMin" value="0.5" />
 	<param name="affw" value="$(arg affw)" />
 	<node name="affw_joy" pkg="affw_joy" type="joy2vel" output="screen" />

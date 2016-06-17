@@ -5,16 +5,15 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include <affw/learner/FANNLearner.h>
+#include "FANNLearner.h"
 #include <fann.h>
 #include <iostream>
 
 namespace affw {
 
-FANNLearner::FANNLearner(Config& config, DataMapper* dataMapper)
-	: ModelLearner(config, dataMapper)
+FANNLearner::FANNLearner(Config& config)
+	: ModelLearner(config)
 {
-	this->dataMapper = dataMapper;
 	std::string config_prefix = "fann.";
 
 	int actionDim = config.getInt("actionDim", 1);
@@ -45,16 +44,13 @@ void FANNLearner::addData(
 		const Vector& action,
 		const Vector& actionComp,
 		const Vector& nextState,
-			  Vector& y)
+		const Vector& y)
 {
-	Vector x;
-	dataMapper->getInput(state, target, x);
-	dataMapper->getOutput(state, target, action, actionComp, nextState, y);
 	struct fann_train_data *train_data;
-	train_data = fann_create_train(1,x.size(),y.size());
-	for(int i=0;i<x.size();i++)
+	train_data = fann_create_train(1,state.size(),y.size());
+	for(int i=0;i<state.size();i++)
 	{
-		train_data->input[0][i] = x[i] / upperInputBounds[i];
+		train_data->input[0][i] = state[i] / upperInputBounds[i];
 	}
 	for(int i=0;i<y.size();i++)
 	{
@@ -71,11 +67,10 @@ void FANNLearner::addData(
 
 Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
-	std::vector<double> x,y;
-	dataMapper->getInput(state, target, x);
-	fann_type input[x.size()];
-	for(int i=0;i<x.size();i++)
-		input[i] = (fann_type ) x[i] / upperInputBounds[i];
+	std::vector<double> y;
+	fann_type input[state.size()];
+	for(int i=0;i<state.size();i++)
+		input[i] = (fann_type ) state[i] / upperInputBounds[i];
 	fann_type *output = fann_run(ann, input);
 	int nOut = fann_get_num_output(ann);
 	y.resize(nOut);
@@ -88,12 +83,12 @@ Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& tar
 void FANNLearner::read(const std::string& folder)
 {
 	fann_destroy(ann);
-	ann = fann_create_from_file((folder + "/fann.bin").c_str());
+	ann = fann_create_from_file((folder + "/fann.cfg").c_str());
 }
 
 void FANNLearner::write(const std::string& folder)
 {
-	fann_save(ann, (folder + "/fann.bin").c_str());
+	fann_save(ann, (folder + "/fann.cfg").c_str());
 }
 
 } /* namespace affw */

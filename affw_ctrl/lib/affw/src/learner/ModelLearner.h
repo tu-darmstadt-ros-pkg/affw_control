@@ -11,29 +11,32 @@
 #include <vector>
 #include <string>
 
-#include "affw/Config.h"
-#include "affw/mapping/DataMapper.h"
-#include "affw/affw_common.h"
+#include "../Config.h"
+#include "../mapping/DataMapper.h"
+#include "../affw_common.h"
 
 namespace affw {
 
 class ModelLearner {
 public:
-	ModelLearner(Config& config, DataMapper* dataMapper);
+	ModelLearner(Config& config);
 	virtual ~ModelLearner();
 	virtual void addData(	const Vector& state,
 							const Vector& target,
 							const Vector& action,
 							const Vector& actionComp,
 							const Vector& nextState,
-								  Vector& y) = 0;
+							const Vector& y) = 0;
 	virtual Vector getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug) = 0;
 	virtual void read(const std::string& folder) = 0;
 	virtual void write(const std::string& folder) = 0;
+
+	Config& getConfig();
 protected:
 
 	std::vector<double> upperInputBounds;
 	std::vector<double> upperOutputBounds;
+	Config config;
 };
 
 } /* namespace affw */

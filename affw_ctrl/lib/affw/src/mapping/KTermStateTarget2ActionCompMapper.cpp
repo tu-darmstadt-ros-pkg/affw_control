@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
+#include "KTermStateTarget2ActionCompMapper.h"
 #include <iostream>
 
 namespace affw {
@@ -45,13 +45,6 @@ KTermStateTarget2ActionCompMapper::KTermStateTarget2ActionCompMapper(Config& con
 KTermStateTarget2ActionCompMapper::~KTermStateTarget2ActionCompMapper() {
 }
 
-void KTermStateTarget2ActionCompMapper::getInput(const Vector& state, const Vector& target, std::vector<double>& oVec)
-{
-	oVec.clear();
-//	oVec.reserve(state.size()+target.size());
-	oVec.insert(oVec.end(), state.begin(), state.end());
-//	oVec.insert(oVec.end(), target.begin(), target.end());
-}
 void KTermStateTarget2ActionCompMapper::getOutput(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState, std::vector<double>& oVec)
 {
 	int dim = nextState.size();

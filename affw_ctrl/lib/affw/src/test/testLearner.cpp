@@ -9,8 +9,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "affw/learner/FANNLearner.h"
-#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
+#include "../affw.h"
 
 
 int main(int argc, char **argv) {
@@ -23,7 +22,7 @@ int main(int argc, char **argv) {
 	config.print();
 
 	affw::KTermStateTarget2ActionCompMapper mapper(config);
-	affw::FANNLearner learner(config, &mapper);
+	affw::FANNLearner learner(config);
 
 	affw::Vector state(3);
 	affw::Vector target(3);
@@ -32,6 +31,7 @@ int main(int argc, char **argv) {
 	affw::Vector nextState(3);
 	affw::Vector learnerDebug(0);
 	affw::Vector y(0);
+	mapper.getOutput(state, target, action, actionComp, nextState, y);
 	for(int i=0;i<10;i++)
 		learner.addData(state, target, action, actionComp, nextState, y);
 

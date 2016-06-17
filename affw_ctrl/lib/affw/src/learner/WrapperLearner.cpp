@@ -5,14 +5,13 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/WrapperLearner.h"
-#include "affw/learner/LWPRLearner.h"
-#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
+#include "WrapperLearner.h"
+#include "LWPRLearner.h"
 
 namespace affw {
 
-WrapperLearner::WrapperLearner(Config& config, DataMapper* dataMapper)
-	: ModelLearner(config, dataMapper)
+WrapperLearner::WrapperLearner(Config& config)
+	: ModelLearner(config)
 {
 	int actionDim = config.getInt("actionDim", 1);
 	std::vector<double> upperOutputBounds(actionDim, 0);
@@ -31,8 +30,7 @@ WrapperLearner::WrapperLearner(Config& config, DataMapper* dataMapper)
 		std::vector<double> k(1);
 		k[0] = c_k[i];
 		cfg.setDoubleVector("kterm_st2ac.k", k);
-		DataMapper* dm = new KTermStateTarget2ActionCompMapper(cfg);
-		ModelLearner* ml = new LWPR_Learner(cfg, dm);
+		ModelLearner* ml = new LWPR_Learner(cfg);
 		modelLearners.push_back(ml);
 	}
 }
@@ -46,9 +44,8 @@ void WrapperLearner::addData(
 		const Vector& action,
 		const Vector& actionComp,
 		const Vector& nextState,
-			  Vector& y)
+		const Vector& y)
 {
-	y.resize(action.size(), 0);
 	for(int i=0;i<action.size();i++)
 	{
 		Vector l_target(1);
@@ -60,9 +57,9 @@ void WrapperLearner::addData(
 		l_action[0] = action[i];
 		l_actionComp[0] = actionComp[i];
 		l_nextState[0] = nextState[i];
+		l_y[0] = y[i];
 
 		modelLearners[i]->addData(state, l_target, l_action, l_actionComp, l_nextState, l_y);
-		y[i] = l_y[0];
 	}
 }
 

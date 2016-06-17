@@ -16,7 +16,6 @@ class KTermStateTarget2ActionCompMapper: public DataMapper {
 public:
 	KTermStateTarget2ActionCompMapper(Config& config);
 	virtual ~KTermStateTarget2ActionCompMapper();
-	void getInput(const Vector& state, const Vector& target, std::vector<double>& oVec);
 	void getOutput(const Vector& state, const Vector& target, const Vector& action, const Vector& actionComp, const Vector& nextState, std::vector<double>& oVec);
 
 private:

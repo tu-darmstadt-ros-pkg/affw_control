@@ -5,13 +5,15 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/ModelLearner.h"
+#include "ModelLearner.h"
 #include <iostream>
 
 namespace affw {
 
 
-ModelLearner::ModelLearner(Config& config, DataMapper* dataMapper) {
+ModelLearner::ModelLearner(Config& config)
+{
+	this->config = config;
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
 
@@ -43,5 +45,10 @@ ModelLearner::ModelLearner(Config& config, DataMapper* dataMapper) {
 ModelLearner::~ModelLearner() {
 }
 
+
+Config& ModelLearner::getConfig()
+{
+	return this->config;
+}
 
 } /* namespace affw */

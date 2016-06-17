@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/Config.h"
+#include "Config.h"
 
 #include <iostream>
 #include <fstream>

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <fann.h>
-#include "/home/geforce/src/otl/src/libOTL/otl.h"
+#include <otl.h>
 #include <cstring>
 
 int main(int argc, char **argv) {
