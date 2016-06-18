@@ -18,6 +18,7 @@
 #include "learner/FeedbackController.h"
 #include "learner/WrapperLearner.h"
 #include "learner/OESGPLearner.h"
+#include "learner/STORKGPLearner.h"
 
 #include "mapping/KTermStateTarget2ActionCompMapper.h"
 

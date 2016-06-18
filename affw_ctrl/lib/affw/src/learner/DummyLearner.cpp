@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "DummyLearner.h"
+#include "affw/learner/DummyLearner.h"
 
 namespace affw {
 

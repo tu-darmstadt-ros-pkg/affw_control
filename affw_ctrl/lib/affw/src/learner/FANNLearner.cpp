@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "FANNLearner.h"
+#include "affw/learner/FANNLearner.h"
 #include <fann.h>
 #include <iostream>
 

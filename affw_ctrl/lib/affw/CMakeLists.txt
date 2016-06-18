@@ -40,8 +40,9 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/otl/lib)
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 
+include_directories(include)
 
-add_library(affw STATIC
+add_library(affw
 			src/Config.cpp
 			src/learner/LWPRLearner.cpp 
 			src/learner/DummyLearner.cpp 
@@ -50,6 +51,7 @@ add_library(affw STATIC
 			src/learner/WrapperLearner.cpp
 			src/learner/FeedbackController.cpp 
 			src/learner/OESGPLearner.cpp 
+			src/learner/STORKGPLearner.cpp 
 			src/mapping/DataMapper.cpp
 			src/mapping/KTermStateTarget2ActionCompMapper.cpp)
 target_link_libraries(affw lwpr fann OTL ${Boost_LIBRARIES})
@@ -66,11 +68,9 @@ add_executable(batchLearnOTL src/test/batchLearnOTL.cpp)
 target_link_libraries(batchLearnOTL fann OTL)
 add_dependencies(batchLearnOTL LIB_FANN LIB_OTL)
 
-
-install(TARGETS affw
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+#install(TARGETS affw
+#        RUNTIME DESTINATION bin
+#        LIBRARY DESTINATION lib
+#        ARCHIVE DESTINATION lib)
         
-install(DIRECTORY src/ DESTINATION include/affw
-        FILES_MATCHING PATTERN "*.h")
+#install(DIRECTORY include DESTINATION include)

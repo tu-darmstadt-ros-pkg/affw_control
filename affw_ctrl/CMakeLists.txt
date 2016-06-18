@@ -3,22 +3,16 @@ project(affw_ctrl)
 
 include(ExternalProject)
 
-ExternalProject_Add(
-	LIB_AFFW
-	PREFIX affw
-	URL ${CMAKE_CURRENT_SOURCE_DIR}/lib/affw
-	INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/lwpr/include/)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/fann/include/)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/otl/include/)
+add_subdirectory(lib/affw)
+include_directories(lib/affw/include)
 
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/lwpr/lib/)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/fann/lib/)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/affw/src/LIB_AFFW-build/otl/lib/)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/lwpr/include/)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/fann/include/)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/otl/include/)
+
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/lwpr/lib/)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/fann/lib/)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib/affw/otl/lib/)
 
 find_package(catkin REQUIRED COMPONENTS
 	roscpp

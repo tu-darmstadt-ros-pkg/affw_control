@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "LWPRLearner.h"
+#include "affw/learner/LWPRLearner.h"
 
 #include <iostream>
 #include <boost/filesystem.hpp>

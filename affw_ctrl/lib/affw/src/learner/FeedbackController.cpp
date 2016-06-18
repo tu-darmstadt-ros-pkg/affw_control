@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "FeedbackController.h"
+#include "affw/learner/FeedbackController.h"
 
 namespace affw {
 

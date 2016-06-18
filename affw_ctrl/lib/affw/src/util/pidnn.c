@@ -33,14 +33,15 @@ d_type d_function(d_type u, d_type u_p, d_type x)
 
 void train(d_type *r, d_type *y, int n)
 {
+	double eta = 1;
 	for(int i=0;i<3;i++)
 	{
 		d_type sum = 0;
 		for(int j=0;j<n;j++)
 		{
-			sum += (r[j] - y[j]) * ()
+			sum += (r[j] - y[j]) * (1);
 		}
-		d_type dJ = -2.0/n
+		d_type dJ = -2.0/n;
 		w_out[i] = w_out[i] - eta * dJ;
 	}
 }

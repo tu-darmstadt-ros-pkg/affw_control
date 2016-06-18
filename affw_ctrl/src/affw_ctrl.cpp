@@ -152,6 +152,10 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 		{
 			learner = new affw::OESGPLearner(config);
 			ROS_INFO("OESGP learner created");
+		} else if(learner_type == "storkgp")
+		{
+			learner = new affw::STORKGPLearner(config);
+			ROS_INFO("OESGP learner created");
 		} else
 		{
 			learner = new affw::DummyLearner(config);

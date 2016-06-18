@@ -5,8 +5,8 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "WrapperLearner.h"
-#include "LWPRLearner.h"
+#include "affw/learner/WrapperLearner.h"
+#include "affw/learner/LWPRLearner.h"
 
 namespace affw {
 

@@ -5,7 +5,7 @@
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "KTermStateTarget2ActionCompMapper.h"
+#include "affw/mapping/KTermStateTarget2ActionCompMapper.h"
 #include <iostream>
 
 namespace affw {

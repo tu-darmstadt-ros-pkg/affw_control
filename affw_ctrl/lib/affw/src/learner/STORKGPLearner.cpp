@@ -1,61 +1,54 @@
 /*
- * OESGPLearner.cpp
+ * STORKGPLearner.cpp
  *
  *  Created on: Jun 16, 2016
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/OESGPLearner.h"
+#include "affw/learner/STORKGPLearner.h"
 
 namespace affw {
 
-OESGPLearner::OESGPLearner(Config& config)
+STORKGPLearner::STORKGPLearner(Config& config)
 	: ModelLearner(config)
 {
 	// common parameters
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
 
-    //Reservoir Parameters
-    //you can change these to see how it affects the predictions
-    int reservoir_size = 100;
-    double input_weight = 1.0;
-    double output_feedback_weight = 0.0;
-    int activation_function = OTL::Reservoir::TANH;
-    double leak_rate = 0.9;
-    double connectivity = 0.1;
-    double spectral_radius = 0.90;
-    bool use_inputs_in_state = false;
+    //parameters for the STORKGP algorithm
+    unsigned int tau = 20;  //length of memory
 
-    OTL::VectorXd kernel_parameters(2); //gaussian kernel parameters
-    kernel_parameters << 1.0, 1.0; //l = 1.0, alpha = 1.0
+    //kernel parameters
+    double l = 0.5;
+    double rho = 0.99;
+    double alpha = 1.0;
 
     //SOGP parameters
     double noise = 0.01;
-    double epsilon = 1e-3;
-    int capacity = 200;
+    double epsilon = 1e-4;
+    unsigned int capacity = 100;
 
-    int random_seed = 0;
+    OTL::VectorXd kernel_parameters(4);
+    //[l rho alpha input_dim]
+    kernel_parameters << l, rho, alpha, stateDim;
+
     try {
-            //Initialise our OESGP
-            model.init( stateDim, actionDim, reservoir_size,
-                        input_weight, output_feedback_weight,
-                        activation_function,
-                        leak_rate,
-                        connectivity, spectral_radius,
-                        use_inputs_in_state,
-                        kernel_parameters,
-                        noise, epsilon, capacity, random_seed);
+            model.init( stateDim, actionDim,
+                    tau,
+                    OTL::STORKGP::RECURSIVE_GAUSSIAN,
+                    kernel_parameters,
+                    noise, epsilon, capacity);
 	} catch (OTL::OTLException &e) {
 		e.showError();
 	}
 
 }
 
-OESGPLearner::~OESGPLearner() {
+STORKGPLearner::~STORKGPLearner() {
 }
 
-void OESGPLearner::addData(
+void STORKGPLearner::addData(
 		const Vector& state,
 		const Vector& target,
 		const Vector& action,
@@ -80,7 +73,7 @@ void OESGPLearner::addData(
 	model.train(output);
 }
 
-Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
+Vector STORKGPLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
 {
 
     OTL::VectorXd input(state.size());
@@ -103,12 +96,12 @@ Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& ta
 	return v;
 }
 
-void OESGPLearner::read(const std::string& folder)
+void STORKGPLearner::read(const std::string& folder)
 {
 	model.load(folder + "/oesgp");
 }
 
-void OESGPLearner::write(const std::string& folder)
+void STORKGPLearner::write(const std::string& folder)
 {
 	model.save(folder + "/oesgp");
 }

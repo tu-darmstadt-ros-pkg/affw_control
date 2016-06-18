@@ -9,7 +9,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "../affw.h"
+#include "affw/affw.h"
 
 
 int main(int argc, char **argv) {
