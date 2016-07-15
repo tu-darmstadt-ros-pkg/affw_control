@@ -91,11 +91,70 @@ void mySigintHandler(int sig)
 	ros::shutdown();
 }
 
+void generateVelBangBang(geometry_msgs::Twist& curVel, double acc, double dt)
+{
+	double dx = targetVel.linear.x - curVel.linear.x;
+	double dy = targetVel.linear.y - curVel.linear.y;
+	double ldxy = sqrt(dx*dx+dy*dy);
+	if (ldxy > (acc * dt))
+	{
+		curVel.linear.x = curVel.linear.x + (dx / ldxy) * (acc * dt);
+		curVel.linear.y = curVel.linear.y + (dy / ldxy) * (acc * dt);
+	} else
+	{
+		curVel.linear.x = targetVel.linear.x;
+		curVel.linear.y = targetVel.linear.y;
+	}
+
+	double dw = targetVel.angular.z - curVel.angular.z;
+	double accW = accW_;
+	if(dw < 0) accW *= -1;
+	if(fabsf(dw) > (fabsf(accW) * dt))
+	{
+		curVel.angular.z = curVel.angular.z + accW * dt;
+	} else
+	{
+		curVel.angular.z = targetVel.angular.z;
+	}
+}
+
+void generateVelTraj(geometry_msgs::Twist& curVel, double acc, double dt)
+{
+	trajGen.dampingXY = 0.25;
+	trajGen.dampingW = 0.05;
+	trajGen.tShiftXY = 0.59f;
+	trajGen.tShiftW = 0.59f;
+
+	trajGen.vMaxXY = vDef + (vMax-vDef) * uAcc;
+	trajGen.aMaxXY = acc;
+	trajGen.jMaxXY = jerkDef;
+	trajGen.vMaxW = rotateDef;
+	trajGen.aMaxW = accW_;
+	trajGen.jMaxW = 200;
+
+	// Trajectory Update
+	float setpointVel[3];
+	setpointVel[0] = targetVel.linear.x;
+	setpointVel[1] = targetVel.linear.y;
+	setpointVel[2] = targetVel.angular.z;
+	TrajGeneratorCreateLocalVel(&trajGen, setpointVel);
+
+	float velNow[3];
+	memcpy(velNow, trajGen.trajLocalVel, sizeof(float)*3);
+
+	TrajGeneratorStep(&trajGen, (float) dt);
+
+	curVel.linear.x = velNow[0];
+	curVel.linear.y = velNow[1];
+	curVel.angular.z = velNow[2];
+}
+
 int main(int argc, char **argv) {
-	ros::init(argc, argv, "ssl_robot_joy");
+	ros::init(argc, argv, "affw_joy");
 	ros::NodeHandle n;
 
 	bool affw = false;
+	bool useTraj = true;
 	std::string cmd_vel_topic = "cmd_vel";
 	ros::param::param<double>("vDef", vDef, vDef);
 	ros::param::param<double>("vMax", vMax, vMax);
@@ -109,6 +168,7 @@ int main(int argc, char **argv) {
 	ros::param::param<double>("rotateMin", rotateMin, rotateMin);
 	ros::param::param<double>("rotateAcc", accW_, accW_);
 	ros::param::param<bool>("affw", affw, affw);
+	ros::param::param<bool>("useTraj", useTraj, useTraj);
 	ros::param::get("cmd_vel_topic", cmd_vel_topic);
 
 	// affw enabled?
@@ -146,30 +206,12 @@ int main(int argc, char **argv) {
 			acc = (dccDef + ((dccMax - dccDef) * uDcc));
 		}
 
-		trajGen.dampingXY = 0.25;
-		trajGen.dampingW = 0.05;
-		trajGen.tShiftXY = 0.59f;
-		trajGen.tShiftW = 0.59f;
-
-		trajGen.vMaxXY = vDef + (vMax-vDef) * uAcc;
-		trajGen.aMaxXY = acc;
-		trajGen.jMaxXY = jerkDef;
-		trajGen.vMaxW = rotateDef;
-		trajGen.aMaxW = accW_;
-		trajGen.jMaxW = 200;
-
-		// Trajectory Update
-		float setpointVel[] = {targetVel.linear.x, targetVel.linear.y, targetVel.angular.z };
-		TrajGeneratorCreateLocalVel(&trajGen, setpointVel);
-
-		float velNow[3];
-		memcpy(velNow, trajGen.trajLocalVel, sizeof(float)*3);
-
-		TrajGeneratorStep(&trajGen, (float) dt);
-
-		curVel.linear.x = velNow[0];
-		curVel.linear.y = velNow[1];
-		curVel.angular.z = velNow[2];
+		if(useTraj)
+		{
+			generateVelTraj(curVel, acc, dt);
+		} else {
+			generateVelBangBang(curVel, acc, dt);
+		}
 
 		if(affw)
 		{
