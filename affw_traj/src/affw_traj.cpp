@@ -179,15 +179,17 @@ int main(int argc, char **argv) {
 			break;
 		}
 
+		std_msgs::Bool b;
 		if(i >= numIterations)
 		{
-			std_msgs::Bool b;
 			b.data = false;
-			pub_updateModel.publish(b);
-			ros::spinOnce();
+		} else {
+			b.data = true;
 		}
+		pub_updateModel.publish(b);
+		ros::spinOnce();
 
-		ros::Duration(0.5).sleep();
+		ros::Duration(0.3).sleep();
 		ROS_INFO("Start trajectory");
 		dataFolderMsg.data = dataFolder + "/iteration_" + boost::lexical_cast<std::string>(i);
 		pub_dataFolder.publish(dataFolderMsg);
