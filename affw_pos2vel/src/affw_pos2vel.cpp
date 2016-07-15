@@ -1,3 +1,11 @@
+/*
+ * affw_pos2vel.cpp
+ *
+ * map from position to velocity and apply a gaussian filter to velocity
+ *
+ *  Created on: 01.07.2016
+ *      Author: NicolaiO
+ */
 
 #include "ros/ros.h"
 #include "nav_msgs/Odometry.h"
@@ -11,6 +19,7 @@
 #include <boost/circular_buffer.hpp>
 
 ros::Publisher pub_state;
+bool transform2Local = true;
 const int BUFFER_SIZE = 7;
 boost::circular_buffer<geometry_msgs::PoseStamped> poseBuffer(BUFFER_SIZE);
 
@@ -20,7 +29,6 @@ boost::circular_buffer<double> vel_w_buffer(BUFFER_SIZE);
 
 double f[BUFFER_SIZE];
 
-bool differential = true;
 
 double getOrientation(geometry_msgs::Quaternion gq) {
 	double ow = gq.w;
@@ -99,17 +107,12 @@ void stateCallback(const geometry_msgs::PoseStamped::ConstPtr& state)
 		{
 			double vx = applyGaussFilter(vel_x_buffer, f);
 			double vy = applyGaussFilter(vel_y_buffer, f);
-			if(differential)
+			if(transform2Local)
 			{
-
 				double angle = -(getOrientation(newPose.pose.orientation));
 				geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(angle);
 				twist.twist.linear.x = vx * cos(angle) - vy * sin(angle);
 				twist.twist.linear.y = vx * sin(angle)	+ vy * cos(angle);
-
-//				twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
-//						twist.twist.linear.y*twist.twist.linear.y);
-//				twist.twist.linear.y = 0;
 			} else {
 				twist.twist.linear.x = vx;
 				twist.twist.linear.y = vy;
@@ -134,17 +137,19 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	std::string pose_topic;
-	if(!ros::param::get("pose_topic", pose_topic))
+	std::string state_topic;
+	bool transform2Local = false;
+	if(	!ros::param::get("pose_topic", pose_topic) ||
+		!ros::param::get("state_topic", state_topic))
 	{
-		return 100;
+		ROS_ERROR("Topics not specified!");
+		while(ros::Time::now().isZero());
+		ros::Duration(0.1).sleep();
+		return 1;
 	}
-
-	std::string state_topic = "/state";
-	ros::param::get("state_topic", state_topic);
+	ros::param::get("transform2Local", transform2Local);
 
 	createGaussFilter(vel_x_buffer.capacity(), f);
-	for(int i=0;i<BUFFER_SIZE;i++)
-		std::cout << f[i] << std::endl;
 
 	pub_state = n.advertise<nav_msgs::Odometry>(state_topic, 1);
 	ros::TransportHints th;
