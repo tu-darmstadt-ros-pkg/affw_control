@@ -2,8 +2,10 @@
 	<node name="backupFiles" pkg="affw_export" type="backupFiles.sh" />
 	
 	<param name="dataFolder" value="/tmp/affw_data" />
-	<param name="odom_topic" value="odom" />
-	<param name="state_topic" value="/ground_truth/state" />
-	<param name="cmd_vel_topic" value="cmd_vel_raw" />
+	<param name="odom_topic" value="/odom" />
+	<!--<param name="state_topic" value="/ground_truth/state" />-->
+	<param name="state_topic" value="/state2" />
+	<param name="pose_topic" value="/slam_out_pose" />
+	<param name="cmd_vel_topic" value="/cmd_vel_raw" />
 	<node name="affw_export" pkg="affw_export" type="affw_export" output="screen" />
 </launch>

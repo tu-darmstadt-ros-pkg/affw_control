@@ -124,21 +124,23 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "affw_pos2vel");
 	ros::NodeHandle n;
 
-	std::string state_topic;
-	if(!ros::param::get("pose_topic", state_topic))
+	std::string pose_topic;
+	if(!ros::param::get("pose_topic", pose_topic))
 	{
 		return 100;
 	}
-	ROS_INFO_STREAM("pose_topic: " << state_topic);
+
+	std::string state_topic = "/state";
+	ros::param::get("state_topic", state_topic);
 
 	createGaussFilter(vel_x_buffer.capacity(), f);
 	for(int i=0;i<BUFFER_SIZE;i++)
 		std::cout << f[i] << std::endl;
 
-	pub_state = n.advertise<nav_msgs::Odometry>("/state2", 1);
+	pub_state = n.advertise<nav_msgs::Odometry>(state_topic, 1);
 	ros::TransportHints th;
 	th.unreliable();
-	ros::Subscriber sub_state = n.subscribe(state_topic, 1, stateCallback, th);
+	ros::Subscriber sub_state = n.subscribe(pose_topic, 1, stateCallback, th);
 
 	ros::spin();
 
