@@ -23,10 +23,6 @@
 #include <assert.h>
 #include <signal.h>
 
-#include "traj_generator.h"
-
-TrajGenerator trajGen;
-
 ros::Publisher pub_vel_cmd;
 geometry_msgs::Twist targetVel;
 bool running = true;
@@ -91,6 +87,27 @@ void mySigintHandler(int sig)
 	ros::shutdown();
 }
 
+void step(geometry_msgs::Twist& cur, geometry_msgs::Twist& target, double dTarget, double dt)
+{
+	double dx = target.linear.x - cur.linear.x;
+	double dy = target.linear.y - cur.linear.y;
+	double ldxy = sqrt(dx*dx+dy*dy);
+	if (ldxy > (dTarget * dt))
+	{
+		cur.linear.x = cur.linear.x + (dx / ldxy) * (dTarget * dt);
+		cur.linear.y = cur.linear.y + (dy / ldxy) * (dTarget * dt);
+	} else
+	{
+		cur.linear.x = target.linear.x;
+		cur.linear.y = target.linear.y;
+	}
+}
+
+double length(const geometry_msgs::Twist& v)
+{
+	return sqrt(v.linear.x*v.linear.x+v.linear.y*v.linear.y);
+}
+
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "ssl_robot_joy");
 	ros::NodeHandle n;
@@ -123,53 +140,60 @@ int main(int argc, char **argv) {
 
 	signal(SIGINT, mySigintHandler);
 
-	trajGen.mode = MODE_RESET;
-
 	geometry_msgs::Twist curVel;
+	geometry_msgs::Twist curAcc;
+	geometry_msgs::Twist targetAcc;
 	double dt = 0.01;
 	int seq = 0;
 	while(ros::ok() && running)
 	{
+		double curVelLen = length(curVel);
+		double targetVelLen = length(targetVel);
 		double acc;
 		if (targetVel.linear.x == 0 && targetVel.linear.y == 0)
 		{
 			// dcc
 			acc = (dccDef + ((dccMax - dccDef) * uDcc));
+			if(curVelLen > 0.0001)
+			{
+				targetAcc.linear.x = curVel.linear.x  / curVelLen * -acc;
+				targetAcc.linear.y = curVel.linear.y  / curVelLen * -acc;
+			} else {
+				targetAcc.linear.x = 0;
+				targetAcc.linear.y = 0;
+			}
 		} else if ((curVel.linear.x == 0 && curVel.linear.y == 0)
 				|| (angleBetweenVectorAndVector(targetVel.linear.x, targetVel.linear.y, curVel.linear.x, curVel.linear.y) < M_PI/2))
 		{
 			// acc
 			acc = (accDef + ((accMax - accDef) * uAcc));
+			targetAcc.linear.x = targetVel.linear.x  / targetVelLen * acc;
+			targetAcc.linear.y = targetVel.linear.y  / targetVelLen * acc;
 		} else
 		{
 			// dcc
 			acc = (dccDef + ((dccMax - dccDef) * uDcc));
+			double dx = targetVel.linear.x - curVel.linear.x;
+			double dy = targetVel.linear.y - curVel.linear.y;
+			double ldxy = sqrt(dx*dx+dy*dy);
+			targetAcc.linear.x = dx / ldxy * -acc;
+			targetAcc.linear.y = dy / ldxy * -acc;
 		}
 
-		trajGen.dampingXY = 0.25;
-		trajGen.dampingW = 0.05;
-		trajGen.tShiftXY = 0.59f;
-		trajGen.tShiftW = 0.59f;
+		step(curAcc, targetAcc, jerkDef, dt);
+		double curAccLen = length(curAcc);
+		step(curVel, targetVel, curAccLen, dt);
 
-		trajGen.vMaxXY = vDef + (vMax-vDef) * uAcc;
-		trajGen.aMaxXY = acc;
-		trajGen.jMaxXY = jerkDef;
-		trajGen.vMaxW = rotateDef;
-		trajGen.aMaxW = accW_;
-		trajGen.jMaxW = 200;
-
-		// Trajectory Update
-		float setpointVel[] = {targetVel.linear.x, targetVel.linear.y, targetVel.angular.z };
-		TrajGeneratorCreateLocalVel(&trajGen, setpointVel);
-
-		float velNow[3];
-		memcpy(velNow, trajGen.trajLocalVel, sizeof(float)*3);
-
-		TrajGeneratorStep(&trajGen, (float) dt);
-
-		curVel.linear.x = velNow[0];
-		curVel.linear.y = velNow[1];
-		curVel.angular.z = velNow[2];
+		double dw = targetVel.angular.z - curVel.angular.z;
+		double accW = accW_;
+		if(dw < 0) accW *= -1;
+		if(fabsf(dw) > (fabsf(accW) * dt))
+		{
+			curVel.angular.z = curVel.angular.z + accW * dt;
+		} else
+		{
+			curVel.angular.z = targetVel.angular.z;
+		}
 
 		if(affw)
 		{
