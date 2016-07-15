@@ -22,9 +22,11 @@ public:
 					const Vector& actionComp,
 					const Vector& nextState,
 					const Vector& y);
-	Vector getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug);
+	Vector getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug);
 	void read(const std::string& folder);
 	void write(const std::string& folder);
+	static std::string name() { return "wrapper"; }
+	std::string getName();
 
 private:
 	std::vector<ModelLearner*> modelLearners;

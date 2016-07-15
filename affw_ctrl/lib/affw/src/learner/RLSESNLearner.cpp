@@ -1,16 +1,16 @@
 /*
- * OESGPLearner.cpp
+ * RLSESNLearner.cpp
  *
- *  Created on: Jun 16, 2016
+ *  Created on: Jul 14, 2016
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
 
-#include "affw/learner/OESGPLearner.h"
+#include "affw/learner/RLSESNLearner.h"
 
 namespace affw {
 
-OESGPLearner::OESGPLearner(Config& config)
-	: ModelLearner(OESGPLearner::name(), config)
+RLSESNLearner::RLSESNLearner(Config& config)
+		: ModelLearner(RLSESNLearner::name(), config)
 {
 	// common parameters
 	int actionDim = config.getInt("actionDim", 1);
@@ -27,48 +27,43 @@ OESGPLearner::OESGPLearner(Config& config)
     bool use_inputs_in_state = true;
     int random_seed = 0;
 
-    //SOGP parameters
-    double noise = 0.01;
-    double epsilon = 1e-3;
-    int capacity = 100;
-    double kernel_l = 0.5;
-    double kernel_alpha = 1.0;
+	// RLS parameters
+	double delta = 0.1;
+    double lambda = 0.99;
+    double noise = 1e-12;
 
 	reservoir_size = config.getInt(config_prefix + "reservoir_size", reservoir_size);
+	std::cout << "reservoir_size=" << reservoir_size << std::endl;
+	activation_function = config.getInt(config_prefix + "activation_function", activation_function);
 	leak_rate = config.getDouble(config_prefix + "leak_rate", leak_rate);
 	connectivity = config.getDouble(config_prefix + "connectivity", connectivity);
 	spectral_radius = config.getDouble(config_prefix + "spectral_radius", spectral_radius);
 	use_inputs_in_state = config.getBool(config_prefix + "use_inputs_in_state", use_inputs_in_state);
 	random_seed = config.getInt(config_prefix + "random_seed", random_seed);
+
+	delta = config.getDouble(config_prefix + "delta", delta);
+	lambda = config.getDouble(config_prefix + "lambda", lambda);
 	noise = config.getDouble(config_prefix + "noise", noise);
-	epsilon = config.getDouble(config_prefix + "epsilon", epsilon);
-	capacity = config.getInt(config_prefix + "capacity", capacity);
-	kernel_l = config.getDouble(config_prefix + "kernel_l", kernel_l);
-	kernel_alpha = config.getDouble(config_prefix + "kernel_alpha", kernel_alpha);
 
-    OTL::VectorXd kernel_parameters(2); //gaussian kernel parameters
-    kernel_parameters << kernel_l, kernel_alpha; //l, alpha
-
-    try {
-            //Initialise our OESGP
-            model.init( stateDim, actionDim, reservoir_size,
-                        input_weight, output_feedback_weight,
-                        activation_function,
-                        leak_rate,
-                        connectivity, spectral_radius,
-                        use_inputs_in_state,
-                        kernel_parameters,
-                        noise, epsilon, capacity, random_seed);
+	try {
+		model.init( stateDim, actionDim,
+				reservoir_size,
+                input_weight, output_feedback_weight,
+                activation_function,
+                leak_rate,
+                connectivity, spectral_radius,
+                use_inputs_in_state,
+                random_seed,
+				delta, lambda, noise);
 	} catch (OTL::OTLException &e) {
 		e.showError();
 	}
-
 }
 
-OESGPLearner::~OESGPLearner() {
+RLSESNLearner::~RLSESNLearner() {
 }
 
-void OESGPLearner::addData(
+void RLSESNLearner::addData(
 		const Vector& state,
 		const Vector& target,
 		const Vector& action,
@@ -88,12 +83,12 @@ void OESGPLearner::addData(
 
 	m_mutex.lock();
 
-	model.updateAsync(input, output);
+	model.train(input, output);
 
 	m_mutex.unlock();
 }
 
-Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
+Vector RLSESNLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
     OTL::VectorXd input(state.size());
     for(int i=0;i<state.size();i++)
@@ -104,14 +99,12 @@ Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& ta
 
 	m_mutex.lock();
 
-	model.predictAsync(input, prediction, prediction_variance);
+	model.predict(input, prediction, prediction_variance);
 
-	learnerDebug.resize(target.size()*3);
+	learnerDebug.resize(target.size());
 	for(int i=0;i<target.size();i++)
 	{
 		learnerDebug[i] = prediction_variance[i];
-		learnerDebug[i+target.size()] = model.getCurrentSize();
-		learnerDebug[i+target.size()*2] = model.getActualSpectralRadius();
 	}
 
 	m_mutex.unlock();
@@ -130,14 +123,14 @@ Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& ta
 	return v;
 }
 
-void OESGPLearner::read(const std::string& folder)
+void RLSESNLearner::read(const std::string& folder)
 {
-	model.load(folder + "/oesgp");
+	model.load(folder + "/rls-esn");
 }
 
-void OESGPLearner::write(const std::string& folder)
+void RLSESNLearner::write(const std::string& folder)
 {
-	model.save(folder + "/oesgp");
+	model.save(folder + "/rls-esn");
 }
 
 } /* namespace affw */

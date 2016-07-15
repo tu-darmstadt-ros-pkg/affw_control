@@ -12,7 +12,7 @@
 namespace affw {
 
 FANNLearner::FANNLearner(Config& config)
-	: ModelLearner(config)
+	: ModelLearner(FANNLearner::name(), config)
 {
 	std::string config_prefix = "fann.";
 
@@ -36,8 +36,6 @@ FANNLearner::~FANNLearner() {
 	fann_destroy(ann);
 }
 
-
-
 void FANNLearner::addData(
 		const Vector& state,
 		const Vector& target,
@@ -57,21 +55,27 @@ void FANNLearner::addData(
 		train_data->output[0][i] = y[i] / upperOutputBounds[i];
 	}
 
+
+	m_mutex.lock();
 //	unsigned int max_neurons = 30;
 //	unsigned int neurons_between_reports = 1;
 //	const float desired_error = (const float) 0.01;
 //	fann_train_on_data(ann, train_data, max_neurons, neurons_between_reports, desired_error);
 	fann_train_epoch(ann, train_data);
 	fann_destroy_train(train_data);
+
+	m_mutex.unlock();
 }
 
-Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
+Vector FANNLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
 	std::vector<double> y;
 	fann_type input[state.size()];
 	for(int i=0;i<state.size();i++)
 		input[i] = (fann_type ) state[i] / upperInputBounds[i];
+	m_mutex.lock();
 	fann_type *output = fann_run(ann, input);
+	m_mutex.unlock();
 	int nOut = fann_get_num_output(ann);
 	y.resize(nOut);
 	for(int i=0;i<nOut;i++)

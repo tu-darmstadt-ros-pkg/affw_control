@@ -11,7 +11,7 @@
 namespace affw {
 
 WrapperLearner::WrapperLearner(Config& config)
-	: ModelLearner(config)
+	: ModelLearner(WrapperLearner::name(), config)
 {
 	int actionDim = config.getInt("actionDim", 1);
 	std::vector<double> upperOutputBounds(actionDim, 0);
@@ -63,7 +63,7 @@ void WrapperLearner::addData(
 	}
 }
 
-Vector WrapperLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
+Vector WrapperLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
 	Vector v(target.size());
 
@@ -71,8 +71,10 @@ Vector WrapperLearner::getActionCompensation(const Vector& state, const Vector& 
 	{
 		Vector l_target(1);
 		Vector l_ld;
+		Vector l_preState(1);
 		l_target[0] = target[i];
-		Vector l_v = modelLearners[i]->getActionCompensation(state, l_target, l_ld);
+		l_preState[0] = preState[i];
+		Vector l_v = modelLearners[i]->getActionCompensation(state, l_target, l_preState, l_ld);
 		v[i] = l_v[0];
 		if(learnerDebug.empty())
 		{

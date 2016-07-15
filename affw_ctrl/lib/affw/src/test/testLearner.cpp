@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 		learner.addData(state, target, action, actionComp, nextState, y);
 
 	for(int i=0;i<10;i++)
-		learner.getActionCompensation(state, target, learnerDebug);
+		learner.getActionCompensation(state, target, nextState, learnerDebug);
 
 	return 0;
 }

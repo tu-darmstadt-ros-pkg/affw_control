@@ -10,7 +10,7 @@
 namespace affw {
 
 DummyLearner::DummyLearner(Config& config)
-	: ModelLearner(config)
+	: ModelLearner(DummyLearner::name(), config)
 {
 
 }
@@ -28,7 +28,7 @@ void DummyLearner::addData(
 {
 }
 
-Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
+Vector DummyLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
 	Vector v(target.size());
 	return v;

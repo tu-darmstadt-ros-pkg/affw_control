@@ -14,19 +14,28 @@
 namespace affw {
 
 LWPR_Learner::LWPR_Learner(Config& config)
-	: ModelLearner(config)
+	: ModelLearner(LWPR_Learner::name(), config)
 {
 	// common parameters
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
 
 	// lwpr parameters
-	std::string config_prefix = "lwpr.";
 	cutoff = config.getDouble(config_prefix + "cutoff", 0.001);
-	lwpr_config = "lwpr";
 
 	// create new model
 	model = new LWPR_Object(stateDim,actionDim);
+
+	updateModel();
+}
+
+LWPR_Learner::~LWPR_Learner() {
+}
+
+void LWPR_Learner::updateModel()
+{
+	int actionDim = config.getInt("actionDim", 1);
+	int stateDim = config.getInt("stateDim", 1);
 
 	// normalization
 	if(upperInputBounds.size() == stateDim && upperOutputBounds.size() == actionDim)
@@ -49,15 +58,16 @@ LWPR_Learner::LWPR_Learner(Config& config)
 
 	/* Set initial distance metric to 50*(identity matrix) */
 	model->setInitD(config.getDouble(config_prefix + "initD", 50));
+	model->updateD(config.getBool(config_prefix + "updateD", false));
+
+	model->initLambda(config.getDouble(config_prefix + "initLambda", 0.999));
+	model->finalLambda(config.getDouble(config_prefix + "finalLambda", 0.99999));
+	model->tauLambda(config.getDouble(config_prefix + "tauLambda", 0.9999));
 
 
 	// #### local regression
 	model->wGen(config.getDouble(config_prefix + "wGen", 0.1));
 }
-
-LWPR_Learner::~LWPR_Learner() {
-}
-
 
 void LWPR_Learner::addData(
 		const Vector& state,
@@ -67,18 +77,21 @@ void LWPR_Learner::addData(
 		const Vector& nextState,
 		const Vector& y)
 {
+	m_mutex.lock();
 	try {
 		doubleVec yp = model->update((doubleVec) state, (doubleVec) y);
 	} catch(LWPR_Exception& e)
 	{
 		std::cerr << "addData: LWPR error: " << e.getString() << std::endl;
 	}
+	m_mutex.unlock();
 }
 
-Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target, Vector& learnerDebug)
+Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
 	doubleVec yp,conf,wMax;
 
+	m_mutex.lock();
 	try {
 		yp = model->predict(state, conf, wMax, cutoff);
 	} catch(LWPR_Exception& e)
@@ -86,6 +99,7 @@ Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& ta
 		std::cerr << "getActionComp: LWPR error: " << e.getString() << " stateSize:"
 				<< state.size() << " targetSize:" << target.size() << " modelInDim:" << model->nIn() << std::endl;
 	}
+	m_mutex.unlock();
 
 	learnerDebug.insert(learnerDebug.end(), conf.begin(), conf.end());
 	learnerDebug.insert(learnerDebug.end(), wMax.begin(), wMax.end());
@@ -93,15 +107,6 @@ Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& ta
 
 	for(int i=0;i<yp.size();i++)
 	{
-		// throw away if too uncertain
-//		double maxConf = 0.5; // upperOutputBounds[i];
-//		if(conf[i] > maxConf)
-//		{
-//			double c = std::min(conf[i], maxConf);
-//			yp[i] *= 1 - (c / maxConf);
-//			yp[i] = 0;
-//		}
-
 		// cut off at bounds
 		yp[i] = fminf(upperOutputBounds[i], yp[i]);
 		yp[i] = fmaxf(-upperOutputBounds[i], yp[i]);
@@ -111,19 +116,22 @@ Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& ta
 
 void LWPR_Learner::read(const std::string& folder)
 {
-	std::string configPath = folder + "/" + lwpr_config + ".bin";
+	std::string configPath = folder + "/lwpr.bin";
 	if(boost::filesystem::exists(configPath))
 	{
 		model = new LWPR_Object(configPath.c_str());
 		std::cout << "Reusing existing model with " << model->nData() << " nData." << std::endl;
+		updateModel();
 	}
 }
 
 void LWPR_Learner::write(const std::string& folder)
 {
 	std::cout << "Save LWPR model to " << folder << std::endl;
-	model->writeBinary((folder + "/" + lwpr_config + ".bin").c_str());
-//	model->writeXML((folder + "/" + lwpr_config + ".xml").c_str());
+	m_mutex.lock();
+	model->writeBinary((folder + "/lwpr.bin").c_str());
+	model->writeXML((folder + "/lwpr.xml").c_str());
+	m_mutex.unlock();
 }
 
 }

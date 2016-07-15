@@ -11,9 +11,11 @@
 namespace affw {
 
 
-ModelLearner::ModelLearner(Config& config)
+ModelLearner::ModelLearner(std::string name, Config& config)
 {
 	this->config = config;
+	this->name = name;
+	this->config_prefix = (this->getName() + ".");
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
 
@@ -43,6 +45,11 @@ ModelLearner::ModelLearner(Config& config)
 }
 
 ModelLearner::~ModelLearner() {
+}
+
+std::string ModelLearner::getName()
+{
+	return this->name;
 }
 
 
