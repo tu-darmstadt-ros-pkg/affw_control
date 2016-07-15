@@ -34,10 +34,15 @@
 #define NUM_LOGFILES 5
 
 std::string logFiles[] = {"affw.csv","procTime.csv","globalState.csv", "localVel.csv", "set.csv"};
-std::vector< std::vector<double> > data[NUM_LOGFILES];
-std::vector< std::vector<double> > dataAll[NUM_LOGFILES];
+//std::vector< std::vector<double> > data[NUM_LOGFILES];
+//std::vector< std::vector<double> > dataAll[NUM_LOGFILES];
 std::string folder = "/tmp/affw_data";
 std::string folderCustom;
+
+bool first = true;
+bool firstCustom = true;
+
+std::ofstream ofStreams[2][NUM_LOGFILES];
 
 double getOrientation(geometry_msgs::Quaternion gq) {
 	double ow = gq.w;
@@ -52,21 +57,38 @@ double getOrientation(geometry_msgs::Quaternion gq) {
 	return yaw;
 }
 
+void saveDataset(int logId, std::vector<double>& ds)
+{
+	for(int folderId = 0;folderId < 2; folderId++)
+	{
+		if(ofStreams[folderId][logId].is_open())
+		{
+			for(std::vector<double>::iterator it2 = ds.begin(); it2 != ds.end(); it2++)
+			{
+				ofStreams[folderId][logId]  << *it2 << " ";
+			}
+			ofStreams[folderId][logId]  << std::endl;
+		}
+	}
+}
+
 void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 
 	double dim = tr->target.size();
 	double stateSize = tr->state.size();
-	if(data[LOG_AFFW].empty() && !folderCustom.empty())
+	if(firstCustom && !folderCustom.empty())
 	{
 		std::ofstream fDim(std::string(folderCustom + "/dimensions.csv").c_str());
 		fDim << tr->state.size() << " " << tr->target.size() << std::endl;
 		fDim.close();
+		firstCustom = false;
 	}
-	if(dataAll[LOG_AFFW].empty())
+	if(first)
 	{
 		std::ofstream fDim(std::string(folder + "/dimensions.csv").c_str());
 		fDim << tr->state.size() << " " << tr->target.size() << std::endl;
 		fDim.close();
+		first = false;
 	}
 
 	if(tr->action.size() != dim ||
@@ -104,8 +126,9 @@ void callbackAffw(const affw_msgs::TargetRequest::ConstPtr& tr) {
 	for (int i = 0; i < tr->learnerDebug.size(); i++)
 		ds.push_back(tr->learnerDebug[i]);
 
-	data[LOG_AFFW].push_back(ds);
-	dataAll[LOG_AFFW].push_back(ds);
+//	data[LOG_AFFW].push_back(ds);
+//	dataAll[LOG_AFFW].push_back(ds);
+	saveDataset(LOG_AFFW, ds);
 }
 
 void callbackProcTime(const affw_msgs::ProcTime::ConstPtr& proc) {
@@ -114,8 +137,9 @@ void callbackProcTime(const affw_msgs::ProcTime::ConstPtr& proc) {
 	ds.push_back(proc->stamp.toSec());
 	ds.push_back(proc->type);
 	ds.push_back(proc->procTime);
-	data[LOG_PROC_TIME].push_back(ds);
-	dataAll[LOG_PROC_TIME].push_back(ds);
+//	data[LOG_PROC_TIME].push_back(ds);
+//	dataAll[LOG_PROC_TIME].push_back(ds);
+	saveDataset(LOG_PROC_TIME, ds);
 }
 
 void callbackState(const nav_msgs::Odometry::ConstPtr& odom) {
@@ -128,8 +152,24 @@ void callbackState(const nav_msgs::Odometry::ConstPtr& odom) {
 	ds.push_back(odom->twist.twist.linear.x);
 	ds.push_back(odom->twist.twist.linear.y);
 	ds.push_back(odom->twist.twist.angular.z);
-	data[LOG_STATE].push_back(ds);
-	dataAll[LOG_STATE].push_back(ds);
+//	data[LOG_STATE].push_back(ds);
+//	dataAll[LOG_STATE].push_back(ds);
+	saveDataset(LOG_STATE, ds);
+}
+
+void callbackPose(const geometry_msgs::PoseStamped::ConstPtr& odom) {
+
+	std::vector<double> ds;
+	ds.push_back(odom->header.stamp.toSec());
+	ds.push_back(odom->pose.position.x);
+	ds.push_back(odom->pose.position.y);
+	ds.push_back(getOrientation(odom->pose.orientation));
+	ds.push_back(0);
+	ds.push_back(0);
+	ds.push_back(0);
+//	data[LOG_STATE].push_back(ds);
+//	dataAll[LOG_STATE].push_back(ds);
+	saveDataset(LOG_STATE, ds);
 }
 
 void callbackOdom(const nav_msgs::Odometry::ConstPtr& odom) {
@@ -139,8 +179,9 @@ void callbackOdom(const nav_msgs::Odometry::ConstPtr& odom) {
 	ds.push_back(odom->twist.twist.linear.x);
 	ds.push_back(odom->twist.twist.linear.y);
 	ds.push_back(odom->twist.twist.angular.z);
-	data[LOG_ODOM].push_back(ds);
-	dataAll[LOG_ODOM].push_back(ds);
+//	data[LOG_ODOM].push_back(ds);
+//	dataAll[LOG_ODOM].push_back(ds);
+	saveDataset(LOG_ODOM, ds);
 }
 
 void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
@@ -150,8 +191,9 @@ void callbackSet(const geometry_msgs::Twist::ConstPtr& twist) {
 	ds.push_back(twist->linear.x);
 	ds.push_back(twist->linear.y);
 	ds.push_back(twist->angular.z);
-	data[LOG_SET].push_back(ds);
-	dataAll[LOG_SET].push_back(ds);
+//	data[LOG_SET].push_back(ds);
+//	dataAll[LOG_SET].push_back(ds);
+	saveDataset(LOG_SET, ds);
 }
 
 void save(std::string& folder, std::string& logFile, std::vector<std::vector<double> >& dat)
@@ -176,25 +218,28 @@ void save(std::string& folder, std::string& logFile, std::vector<std::vector<dou
 	f.close();
 }
 
-void saveAll()
-{
-	if(!folderCustom.empty())
-	{
-		for(int i=0;i<NUM_LOGFILES;i++)
-		{
-			save(folderCustom, logFiles[i], data[i]);
-			data[i].clear();
-		}
-	}
-}
+//void saveAll()
+//{
+//	if(!folderCustom.empty())
+//	{
+//		for(int i=0;i<NUM_LOGFILES;i++)
+//		{
+//			save(folderCustom, logFiles[i], data[i]);
+//			data[i].clear();
+//		}
+//	}
+//}
 
 void mySigintHandler(int sig)
 {
-	saveAll();
+//	saveAll();
 
 	for(int i=0;i<NUM_LOGFILES;i++)
 	{
-		save(folder, logFiles[i], dataAll[i]);
+//		save(folder, logFiles[i], dataAll[i]);
+
+		ofStreams[0][i].close();
+		ofStreams[1][i].close();
 	}
 
 	// All the default sigint handler does is call shutdown()
@@ -204,13 +249,25 @@ void mySigintHandler(int sig)
 
 void changeDataFolder(std::string dataFolder)
 {
-	saveAll();
+//	saveAll();
 
 	folderCustom = dataFolder;
 	if(!folderCustom.empty())
 		boost::filesystem::create_directories(folderCustom);
 	for(int i=0;i<NUM_LOGFILES;i++)
-		data[i].clear();
+	{
+//		data[i].clear();
+		ofStreams[1][i].close();
+		if(!folderCustom.empty())
+		{
+			std::string filepath = folderCustom + "/" + logFiles[i];
+			ofStreams[1][i].open(filepath.c_str());
+			if(!ofStreams[1][i].is_open())
+				ROS_ERROR_STREAM("Could not open file: " << filepath);
+			ofStreams[1][i] << std::fixed << std::setw(11) << std::setprecision(6);
+		}
+	}
+	firstCustom = true;
 }
 
 void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
@@ -218,51 +275,6 @@ void callbackDataFolder(const std_msgs::String::ConstPtr& dataFolder)
 	if(folderCustom != dataFolder->data)
 	{
 		changeDataFolder(dataFolder->data);
-	}
-}
-
-void copyDir(boost::filesystem::path source, boost::filesystem::path dest)
-{
-	bool newDirCreated = boost::filesystem::create_directories(dest);
-	if(!newDirCreated)
-	{
-		ROS_ERROR_STREAM("Could not create new directory: " << dest.string());
-		return;
-	}
-	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
-	for ( boost::filesystem::directory_iterator itr( source );
-		itr != end_itr;
-		++itr )
-	{
-		if(boost::filesystem::is_directory(itr->path()))
-		{
-			copyDir(itr->path(), dest / itr->path().filename());
-		} else {
-			try {
-				boost::filesystem::copy(itr->path(), dest / itr->path().filename());
-			} catch(std::exception& e)
-			{
-				ROS_ERROR_STREAM("Could not copy file: " << itr->path() << " to " << (dest / itr->path().filename()));
-			}
-		}
-	}
-}
-
-void removeAll(boost::filesystem::path p)
-{
-	boost::filesystem::directory_iterator end_itr; // default construction yields past-the-end
-	for ( boost::filesystem::directory_iterator itr( p );
-		itr != end_itr;
-		++itr )
-	{
-//		if(boost::filesystem::is_directory(itr->path()))
-//		{
-////			removeAll(itr->path());
-//			boost::filesystem::remove_all(itr->path());
-//		} else {
-//			boost::filesystem::remove(itr->path());
-//		}
-		boost::filesystem::remove_all(itr->path());
 	}
 }
 
@@ -277,36 +289,32 @@ int main(int argc, char **argv) {
 	{
 		if(i > 5)
 		{
-			std::cerr << "Old data folder present. Exiting...";
+			ROS_ERROR("Old data folder present. Exiting...");
+			ros::Duration(0.5).sleep();
 			return 1;
 		}
 		ros::Duration(0.1).sleep();
 		i++;
 	}
 
-//	time_t rawtime;
-//	time (&rawtime);
-//	struct tm * timeinfo = localtime (&rawtime);
-//	char buffer [80];
-//	strftime (buffer,80,"%F_%H-%M-%S",timeinfo);
-//
-//	boost::filesystem::path p(folder);
-//	boost::filesystem::path parent = p.parent_path();
-//	std::string backupPath = parent.string() + "/" + buffer + "_" + p.filename().string();
-//
-//	if(boost::filesystem::exists(p))
-//	{
-//		boost::filesystem::path bp(backupPath);
-//		copyDir(p, bp);
-//		removeAll(p);
-//	}
 	boost::filesystem::create_directories(p);
+
+	for(int i=0;i<NUM_LOGFILES;i++)
+	{
+		std::string filepath = folder + "/" + logFiles[i];
+		ofStreams[0][i].open(filepath.c_str());
+		if(!ofStreams[0][i].is_open())
+			ROS_ERROR_STREAM("Could not open file: " << filepath);
+		ofStreams[0][i] << std::fixed << std::setw(11) << std::setprecision(6);
+	}
 
 	std::string odom_topic = "odom";
 	std::string state_topic = "state";
+	std::string pose_topic = "";
 	std::string cmd_vel_topic = "cmd_vel";
 	ros::param::get("odom_topic", odom_topic);
 	ros::param::get("state_topic", state_topic);
+	ros::param::get("pose_topic", pose_topic);
 	ros::param::get("cmd_vel_topic", cmd_vel_topic);
 
 	ros::Subscriber sub_dataFolder = n.subscribe("dataFolder", 1, callbackDataFolder);
@@ -317,7 +325,15 @@ int main(int argc, char **argv) {
 	ros::Subscriber sub_procTime = n.subscribe("/affw_ctrl/proc_time", 10,
 			callbackProcTime);
 	ros::Subscriber sub_odom = n.subscribe(odom_topic, 10, callbackOdom);
-	ros::Subscriber sub_state = n.subscribe(state_topic, 10, callbackState);
+	ros::Subscriber sub_state;
+	if(!state_topic.empty())
+	{
+		sub_state = n.subscribe(state_topic, 10, callbackState);
+	}
+	else if(!pose_topic.empty())
+	{
+		sub_state = n.subscribe(pose_topic, 10, callbackPose);
+	}
 	ros::Subscriber sub_set = n.subscribe(cmd_vel_topic, 10, callbackSet);
 
 	signal(SIGINT, mySigintHandler);
