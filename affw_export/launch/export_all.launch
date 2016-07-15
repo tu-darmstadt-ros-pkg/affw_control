@@ -1,9 +1,0 @@
-<launch>
-	<node name="backupFiles" pkg="affw_export" type="backupFiles.sh" />
-
-	<param name="dataFolder" value="/tmp/affw_data" />
-	<param name="odom_topic" value="odom" />
-	<param name="state_topic" value="state" />
-	<param name="cmd_vel_topic" value="cmd_vel" />
-	<node name="affw_export" pkg="affw_export" type="affw_export" output="screen" />
-</launch>
