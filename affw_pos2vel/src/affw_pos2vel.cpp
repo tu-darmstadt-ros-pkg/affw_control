@@ -97,13 +97,22 @@ void stateCallback(const geometry_msgs::PoseStamped::ConstPtr& state)
 		poseBuffer.push_back(newPose);
 		if(vel_x_buffer.size() == vel_x_buffer.capacity())
 		{
-			twist.twist.linear.x = applyGaussFilter(vel_x_buffer, f);
-			twist.twist.linear.y = applyGaussFilter(vel_y_buffer, f);
+			double vx = applyGaussFilter(vel_x_buffer, f);
+			double vy = applyGaussFilter(vel_y_buffer, f);
 			if(differential)
 			{
+
+				double angle = -(getOrientation(newPose.pose.orientation));
+				geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(angle);
+				twist.twist.linear.x = vx * cos(angle) - vy * sin(angle);
+				twist.twist.linear.y = vx * sin(angle)	+ vy * cos(angle);
+
 				twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
 						twist.twist.linear.y*twist.twist.linear.y);
 				twist.twist.linear.y = 0;
+			} else {
+				twist.twist.linear.x = vx;
+				twist.twist.linear.y = vy;
 			}
 			twist.twist.angular.z = applyGaussFilter(vel_w_buffer, f);
 
