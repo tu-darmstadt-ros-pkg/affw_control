@@ -107,9 +107,9 @@ void stateCallback(const geometry_msgs::PoseStamped::ConstPtr& state)
 				twist.twist.linear.x = vx * cos(angle) - vy * sin(angle);
 				twist.twist.linear.y = vx * sin(angle)	+ vy * cos(angle);
 
-				twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
-						twist.twist.linear.y*twist.twist.linear.y);
-				twist.twist.linear.y = 0;
+//				twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
+//						twist.twist.linear.y*twist.twist.linear.y);
+//				twist.twist.linear.y = 0;
 			} else {
 				twist.twist.linear.x = vx;
 				twist.twist.linear.y = vy;
