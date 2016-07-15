@@ -11,7 +11,7 @@
 #include <boost/circular_buffer.hpp>
 
 ros::Publisher pub_state;
-const int BUFFER_SIZE = 5;
+const int BUFFER_SIZE = 7;
 boost::circular_buffer<geometry_msgs::PoseStamped> poseBuffer(BUFFER_SIZE);
 
 boost::circular_buffer<double> vel_x_buffer(BUFFER_SIZE);
@@ -19,6 +19,8 @@ boost::circular_buffer<double> vel_y_buffer(BUFFER_SIZE);
 boost::circular_buffer<double> vel_w_buffer(BUFFER_SIZE);
 
 double f[BUFFER_SIZE];
+
+bool differential = true;
 
 double getOrientation(geometry_msgs::Quaternion gq) {
 	double ow = gq.w;
@@ -71,10 +73,10 @@ double applyGaussFilter(boost::circular_buffer<double> x, double* f)
 	return result;
 }
 
-void stateCallback(const nav_msgs::Odometry::ConstPtr& state)
+void stateCallback(const geometry_msgs::PoseStamped::ConstPtr& state)
 {
 	geometry_msgs::PoseStamped newPose;
-	newPose.pose = state->pose.pose;
+	newPose.pose = state->pose;
 	newPose.header = state->header;
 
 	if(poseBuffer.size() > 0)
@@ -97,6 +99,12 @@ void stateCallback(const nav_msgs::Odometry::ConstPtr& state)
 		{
 			twist.twist.linear.x = applyGaussFilter(vel_x_buffer, f);
 			twist.twist.linear.y = applyGaussFilter(vel_y_buffer, f);
+			if(differential)
+			{
+				twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
+						twist.twist.linear.y*twist.twist.linear.y);
+				twist.twist.linear.y = 0;
+			}
 			twist.twist.angular.z = applyGaussFilter(vel_w_buffer, f);
 
 			nav_msgs::Odometry odom;
@@ -117,16 +125,17 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	std::string state_topic;
-	if(!ros::param::get("state_topic", state_topic))
+	if(!ros::param::get("pose_topic", state_topic))
 	{
 		return 100;
 	}
+	ROS_INFO_STREAM("pose_topic: " << state_topic);
 
 	createGaussFilter(vel_x_buffer.capacity(), f);
 	for(int i=0;i<BUFFER_SIZE;i++)
 		std::cout << f[i] << std::endl;
 
-	pub_state = n.advertise<nav_msgs::Odometry>("/state", 1);
+	pub_state = n.advertise<nav_msgs::Odometry>("/state2", 1);
 	ros::TransportHints th;
 	th.unreliable();
 	ros::Subscriber sub_state = n.subscribe(state_topic, 1, stateCallback, th);

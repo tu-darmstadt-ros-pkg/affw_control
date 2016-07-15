@@ -11,10 +11,11 @@
 #include <boost/circular_buffer.hpp>
 
 ros::Publisher pub_state;
-const int BUFFER_SIZE_POS = 2;
-const int BUFFER_SIZE_VEL = 1;
+const int BUFFER_SIZE_POS = 3;
+const int BUFFER_SIZE_VEL = 5;
 geometry_msgs::PoseStamped lastPose;
 bool first = true;
+bool differential = true;
 
 boost::circular_buffer<double> vel_x_buffer(BUFFER_SIZE_VEL);
 boost::circular_buffer<double> vel_y_buffer(BUFFER_SIZE_VEL);
@@ -111,14 +112,14 @@ double applyMeanFilterOrientation(boost::circular_buffer<double>& x)
 	return sum / x.size();
 }
 
-void stateCallback(const nav_msgs::Odometry::ConstPtr& state)
+void stateCallback(const geometry_msgs::PoseStamped::ConstPtr& state)
 {
 	geometry_msgs::PoseStamped newPose;
-	newPose.pose = state->pose.pose;
+	newPose.pose = state->pose;
 	newPose.header = state->header;
-	pos_x_buffer.push_back(state->pose.pose.position.x);
-	pos_y_buffer.push_back(state->pose.pose.position.y);
-	pos_w_buffer.push_back(tf::getYaw(state->pose.pose.orientation));
+	pos_x_buffer.push_back(state->pose.position.x);
+	pos_y_buffer.push_back(state->pose.position.y);
+	pos_w_buffer.push_back(tf::getYaw(state->pose.orientation));
 	if(!pos_time_buffer.empty())
 		pos_dt_buffer.push_back((state->header.stamp - pos_time_buffer[pos_time_buffer.size()-1]).toSec());
 	pos_time_buffer.push_back(state->header.stamp);
@@ -154,6 +155,12 @@ void stateCallback(const nav_msgs::Odometry::ConstPtr& state)
 //				twist.twist.angular.z = applyGaussFilter(vel_w_buffer, f);
 				twist.twist.linear.x = applyMeanFilter(vel_x_buffer);
 				twist.twist.linear.y = applyMeanFilter(vel_y_buffer);
+				if(differential)
+				{
+					twist.twist.linear.x = sqrt(twist.twist.linear.x*twist.twist.linear.x+
+							twist.twist.linear.y*twist.twist.linear.y);
+					twist.twist.linear.y = 0;
+				}
 				twist.twist.angular.z = applyMeanFilter(vel_w_buffer);
 
 				nav_msgs::Odometry odom;
@@ -175,7 +182,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	std::string state_topic;
-	if(!ros::param::get("state_topic", state_topic))
+	if(!ros::param::get("pose_topic", state_topic))
 	{
 		return 100;
 	}
