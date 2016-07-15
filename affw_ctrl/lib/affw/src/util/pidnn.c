@@ -1,6 +1,8 @@
 /*
  * pidnn.c
  *
+ * http://molefrog.com/pidnn-talk/#slide-12
+ *
  *  Created on: Jun 9, 2016
  *      Author: Nicolai Ommer <nicolai.ommer@gmail.com>
  */
