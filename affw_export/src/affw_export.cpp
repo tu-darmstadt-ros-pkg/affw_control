@@ -152,6 +152,7 @@ void callbackState(const nav_msgs::Odometry::ConstPtr& odom) {
 	ds.push_back(odom->twist.twist.linear.x);
 	ds.push_back(odom->twist.twist.linear.y);
 	ds.push_back(odom->twist.twist.angular.z);
+
 //	data[LOG_STATE].push_back(ds);
 //	dataAll[LOG_STATE].push_back(ds);
 	saveDataset(LOG_STATE, ds);
@@ -179,6 +180,16 @@ void callbackOdom(const nav_msgs::Odometry::ConstPtr& odom) {
 	ds.push_back(odom->twist.twist.linear.x);
 	ds.push_back(odom->twist.twist.linear.y);
 	ds.push_back(odom->twist.twist.angular.z);
+
+	tf::Quaternion q;
+	tf::quaternionMsgToTF(odom->pose.pose.orientation, q);
+	tf::Matrix3x3 m(q);
+	double roll, pitch, yaw;
+	m.getRPY(roll, pitch, yaw);
+
+	ds.push_back(yaw);
+	ds.push_back(roll);
+	ds.push_back(pitch);
 //	data[LOG_ODOM].push_back(ds);
 //	dataAll[LOG_ODOM].push_back(ds);
 	saveDataset(LOG_ODOM, ds);
