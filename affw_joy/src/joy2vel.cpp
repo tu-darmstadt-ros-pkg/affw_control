@@ -42,6 +42,7 @@ double rotateDef = 5;
 double rotateMax = 10;
 double rotateMin = 1;
 double accW_ = 25;
+int angularAxis = 2;
 
 double uDcc = 0;
 double uAcc = 0;
@@ -56,7 +57,7 @@ void callbackJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	geometry_msgs::Twist vel;
 	vel.linear.x = joy->axes[1] * vmax;
 	vel.linear.y = joy->axes[0] * vmax;
-	vel.angular.z = joy->axes[3] * rotmax;
+	vel.angular.z = joy->axes[angularAxis] * rotmax;
 	targetVel = vel;
 }
 
@@ -169,6 +170,7 @@ int main(int argc, char **argv) {
 	ros::param::param<double>("rotateAcc", accW_, accW_);
 	ros::param::param<bool>("affw", affw, affw);
 	ros::param::param<bool>("useTraj", useTraj, useTraj);
+	ros::param::param<int>("angularAxis", angularAxis, angularAxis);
 	ros::param::get("cmd_vel_topic", cmd_vel_topic);
 
 	// affw enabled?
