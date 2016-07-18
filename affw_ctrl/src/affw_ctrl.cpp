@@ -90,47 +90,6 @@ void createLearner(int dim, int stateDim)
 	learner = createAffwLearner(learner_type, config);
 	ROS_INFO_STREAM("Learner """ << learner->getName() << """ created.");
 
-//	if(learner_type == "lwpr") {
-//		learner = new affw::LWPR_Learner(config);
-//		ROS_INFO("LWPR learner created");
-//	} else if(learner_type == "fann")
-//	{
-//		learner = new affw::FANNLearner(config);
-//		ROS_INFO("FANN learner created");
-//	} else if(learner_type == "fdbk")
-//	{
-//		learner = new affw::FeedbackController(config);
-//		ROS_INFO("Feedback Controller created");
-//	} else if(learner_type == "wrap")
-//	{
-//		learner = new affw::WrapperLearner(config);
-//		ROS_INFO("Wrapper learner created");
-//	} else if(learner_type == "oesgp")
-//	{
-//		learner = new affw::OESGPLearner(config);
-//		ROS_INFO("OESGP learner created");
-//	} else if(learner_type == "storkgp")
-//	{
-//		learner = new affw::STORKGPLearner(config);
-//		ROS_INFO("STORKGP learner created");
-//	} else if(learner_type == "sogp")
-//	{
-//		learner = new affw::SOGPLearner(config);
-//		ROS_INFO("SOGP learner created");
-//	} else if(learner_type == "rls")
-//	{
-//		learner = new affw::RLSLearner(config);
-//		ROS_INFO("RLS learner created");
-//	} else if(learner_type == "rlsesn")
-//	{
-//		learner = new affw::RLSESNLearner(config);
-//		ROS_INFO("RLS-ESN learner created");
-//	}  else
-//	{
-//		learner = new affw::DummyLearner(config);
-//		ROS_INFO("dummy learner created");
-//	}
-
 	bool loadModel = config.getBool("reload_model", false);
 	if(loadModel)
 	{
@@ -222,6 +181,7 @@ bool getStateAtTime(const ros::Time& stamp, const std::vector<affw_msgs::State>&
 	{
 		ros::Duration diff = curStates.begin()->header.stamp - stamp;
 		ROS_WARN("timestamp too old. (%f)", diff.toSec());
+		postState = curStates.begin() + 1;
 	}
 	it_type preState = postState-1;
 
