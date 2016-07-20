@@ -31,7 +31,7 @@ ExternalProject_Add(
 	LIB_OTL
 	PREFIX otl
 	GIT_REPOSITORY https://bitbucket.org/haroldsoh/otl.git
-	UPDATE_COMMAND ""
+	#UPDATE_COMMAND "make -C <SOURCE_DIR>"
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 	INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/lib <INSTALL_DIR>/include && cp <BINARY_DIR>/libOTL.a <INSTALL_DIR>/lib && cp <SOURCE_DIR>/src/libOTL/*.h <INSTALL_DIR>/include"
 )
@@ -41,6 +41,17 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/otl/lib)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 
 include_directories(include)
+
+add_library(osvr
+			src/osvr/CrossValidation.cpp 
+			src/osvr/File.cpp 
+			src/osvr/Forget.cpp 
+			src/osvr/Kernel.cpp 
+			src/osvr/OnlineSVR.cpp 
+			src/osvr/Show.cpp 
+			src/osvr/Stabilize.cpp 
+			src/osvr/Train.cpp 
+			src/osvr/Variations.cpp)
 
 add_library(affw
 			src/Config.cpp
@@ -58,12 +69,13 @@ add_library(affw
 			src/learner/SOGPLearner.cpp 
 			src/learner/RLSLearner.cpp 
 			src/learner/RLSESNLearner.cpp 
+			src/learner/OSVRLearner.cpp 
 			src/mapping/DataMapper.cpp
 			src/mapping/KTermStateTarget2ActionCompMapper.cpp
 			src/util/DelayEstimator.cpp
 			src/util/affw_factory.cpp
 			)
-target_link_libraries(affw lwpr fann OTL ${Boost_LIBRARIES})
+target_link_libraries(affw lwpr fann OTL osvr ${Boost_LIBRARIES})
 add_dependencies(affw LIB_LWPR LIB_FANN LIB_OTL)
 
 #add_executable(testLearner src/test/testLearner.cpp)

@@ -34,6 +34,9 @@ affw::ModelLearner* createAffwLearner(std::string& learner_type, affw::Config& c
 	} else if(learner_type == affw::STORKGPLearner::name())
 	{
 		learner = new affw::STORKGPLearner(config);
+	} else if(learner_type == affw::OSVRLearner::name())
+	{
+		learner = new affw::OSVRLearner(config);
 	} else if(learner_type == affw::WrapperLearner::name())
 	{
 		learner = new affw::WrapperLearner(config);

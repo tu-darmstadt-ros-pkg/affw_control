@@ -23,6 +23,7 @@
 #include "learner/SOGPLearner.h"
 #include "learner/RLSLearner.h"
 #include "learner/RLSESNLearner.h"
+#include "learner/OSVRLearner.h"
 
 #include "mapping/KTermStateTarget2ActionCompMapper.h"
 
