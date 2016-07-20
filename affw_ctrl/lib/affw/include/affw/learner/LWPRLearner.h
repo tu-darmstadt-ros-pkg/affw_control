@@ -35,6 +35,7 @@ private:
 
 	LWPR_Object* model;
 	double cutoff;
+	double max_wMax;
 };
 
 }

@@ -22,6 +22,7 @@ LWPR_Learner::LWPR_Learner(Config& config)
 
 	// lwpr parameters
 	cutoff = config.getDouble(config_prefix + "cutoff", 0.001);
+	max_wMax = config.getDouble(config_prefix + "max_wMax", 0.2);
 
 	// create new model
 	model = new LWPR_Object(stateDim,actionDim);
@@ -107,6 +108,10 @@ Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& ta
 
 	for(int i=0;i<yp.size();i++)
 	{
+		if(wMax[i] < max_wMax)
+		{
+			yp[i] = 0;
+		}
 		// cut off at bounds
 		yp[i] = fminf(upperOutputBounds[i], yp[i]);
 		yp[i] = fmaxf(-upperOutputBounds[i], yp[i]);
