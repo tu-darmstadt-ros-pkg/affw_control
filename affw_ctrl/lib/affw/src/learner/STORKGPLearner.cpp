@@ -18,6 +18,7 @@ STORKGPLearner::STORKGPLearner(Config& config)
 
     //parameters for the STORKGP algorithm
     unsigned int tau = 5;  //length of memory
+    tau = config.getInt(config_prefix + "tau", tau);
 
     //kernel parameters
     double l = 0.5;
@@ -25,7 +26,7 @@ STORKGPLearner::STORKGPLearner(Config& config)
     double alpha = 1.0;
 
     //SOGP parameters
-    double noise = 0.01;
+    double noise = 0.1;
     double epsilon = 1e-3;
     unsigned int capacity = 100;
 

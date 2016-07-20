@@ -10,6 +10,7 @@
 namespace affw {
 
 RLSESN::RLSESN() {
+	reservoir_size = 0;
 }
 
 RLSESN::~RLSESN() {
@@ -18,8 +19,20 @@ RLSESN::~RLSESN() {
 void RLSESN::train(const VectorXd &input, const VectorXd &output)
 {
 	VectorXd state;
-    res.update(input);
-    res.getState(state);
+	if(reservoir_size > 0)
+	{
+		res.update(input);
+		res.getState(state);
+//		for(int i=0;i<input.size();i++)
+//		{
+//			if(fabsf(state(state.size()-input.size()+i) - state(i)) > 0.001)
+//			{
+//				std::cerr << "Invalid state." << std::endl;
+//			}
+//		}
+	} else {
+		state = input;
+	}
     rls.train(state, output);
 
 }
@@ -28,8 +41,13 @@ void RLSESN::predict(const VectorXd &input, VectorXd &prediction,
                   VectorXd &prediction_variance)
 {
 	VectorXd state;
-	predictionRes.update(input);
-	predictionRes.getState(state);
+	if(reservoir_size > 0)
+	{
+		predictionRes.update(input);
+		predictionRes.getState(state);
+	} else {
+		state = input;
+	}
 	rls.predict(state, prediction, prediction_variance);
 }
 
@@ -63,15 +81,20 @@ void RLSESN::init(unsigned int input_dim,
 					double noise
 					)
 {
-	res.init(input_dim, output_dim,reservoir_size,
-            input_weight, output_feedback_weight,
-            activation_function,
-            leak_rate, connectivity, spectral_radius,
-            use_inputs_in_state,
-            random_seed);
-	predictionRes = res;
-
-	rls.init(input_dim, output_dim, delta, lambda, noise);
+	this->reservoir_size = reservoir_size;
+	if(reservoir_size > 0)
+	{
+		res.init(input_dim, output_dim,reservoir_size,
+				input_weight, output_feedback_weight,
+				activation_function,
+				leak_rate, connectivity, spectral_radius,
+				use_inputs_in_state,
+				random_seed);
+		predictionRes = res;
+		rls.init(res.getStateSize(), output_dim, delta, lambda, noise);
+	} else {
+		rls.init(input_dim, output_dim, delta, lambda, noise);
+	}
 }
 
 } /* namespace affw */

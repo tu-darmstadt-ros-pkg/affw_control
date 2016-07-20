@@ -18,14 +18,21 @@ SOGPLearner::SOGPLearner(Config& config)
 	int stateDim = config.getInt("stateDim", 1);
 
     //kernel parameters
-    double l = 0.5;
-    double rho = 0.99;
-    double alpha = 1.0;
+    double l = 0.5; // characteristic length scale
+    double rho = 0.99; // spectral radius
+    double alpha = 1; // magnitude multiplier
 
     //SOGP parameters
-    double noise = 0.01;
+    double noise = 0.1;
     double epsilon = 1e-3;
     unsigned int capacity = 100;
+
+    l = config.getDouble(config_prefix + "l", l);
+    rho = config.getDouble(config_prefix + "rho", rho);
+    alpha = config.getDouble(config_prefix + "alpha", alpha);
+    noise = config.getDouble(config_prefix + "noise", noise);
+    epsilon = config.getDouble(config_prefix + "epsilon", epsilon);
+    capacity = config.getInt(config_prefix + "capacity", capacity);
 
     OTL::VectorXd kernel_parameters(4);
     //[l rho alpha input_dim]
@@ -88,7 +95,21 @@ void SOGPLearner::addData(
 
 	m_mutex.lock();
 
+	OTL::SOGP cpy(model);
+
 	model.train(input, output);
+
+    OTL::VectorXd prediction(target.size());
+    OTL::VectorXd prediction_variance(target.size());
+	model.predict(input, prediction, prediction_variance);
+	for(int i=0;i<target.size();i++)
+	{
+		double v = prediction(i) * upperOutputBounds[i];
+		if(!std::isfinite(v))
+		{
+			cpy.train(input, output);
+		}
+	}
 
 	m_mutex.unlock();
 }

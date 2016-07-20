@@ -24,13 +24,13 @@ RLSESNLearner::RLSESNLearner(Config& config)
     double leak_rate = 0.0;
     double connectivity = 0.1;
     double spectral_radius = 0.99;
-    bool use_inputs_in_state = true;
+    bool use_inputs_in_state = false;
     int random_seed = 0;
 
 	// RLS parameters
 	double delta = 0.1;
     double lambda = 0.99;
-    double noise = 1e-12;
+    double noise = 1e-3;
 
 	reservoir_size = config.getInt(config_prefix + "reservoir_size", reservoir_size);
 	std::cout << "reservoir_size=" << reservoir_size << std::endl;
@@ -94,8 +94,8 @@ Vector RLSESNLearner::getActionCompensation(const Vector& state, const Vector& t
     for(int i=0;i<state.size();i++)
     	input(i) = state[i] / upperInputBounds[i];
 
-    OTL::VectorXd prediction;
-    OTL::VectorXd prediction_variance;
+    OTL::VectorXd prediction(target.size());
+    OTL::VectorXd prediction_variance(target.size());
 
 	m_mutex.lock();
 

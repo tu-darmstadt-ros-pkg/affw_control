@@ -19,7 +19,11 @@ RLSLearner::RLSLearner(Config& config)
 	// RLS parameters
 	double delta = 0.1;
     double lambda = 0.99;
-    double noise = 1e-12;
+    double noise = 1e-3;
+
+    delta = config.getDouble(config_prefix + "delta", delta);
+    lambda = config.getDouble(config_prefix + "lambda", lambda);
+    noise = config.getDouble(config_prefix + "noise", noise);
 
 	try {
 		model.init( stateDim, actionDim, delta, lambda, noise);

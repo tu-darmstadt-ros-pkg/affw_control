@@ -17,18 +17,18 @@ OESGPLearner::OESGPLearner(Config& config)
 	int stateDim = config.getInt("stateDim", 1);
 
     //Reservoir Parameters
-    int reservoir_size = 100;
+    int reservoir_size = 10;
     double input_weight = 1.0;
     double output_feedback_weight = 0.0;
     int activation_function = OTL::Reservoir::TANH;
     double leak_rate = 0.0;
     double connectivity = 0.1;
     double spectral_radius = 0.99;
-    bool use_inputs_in_state = true;
+    bool use_inputs_in_state = false;
     int random_seed = 0;
 
     //SOGP parameters
-    double noise = 0.01;
+    double noise = 0.1;
     double epsilon = 1e-3;
     int capacity = 100;
     double kernel_l = 0.5;

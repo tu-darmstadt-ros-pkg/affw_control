@@ -72,6 +72,7 @@ private:
     Reservoir res;
     Reservoir predictionRes;
     RLS rls;
+    int reservoir_size;
 };
 
 } /* namespace affw */
