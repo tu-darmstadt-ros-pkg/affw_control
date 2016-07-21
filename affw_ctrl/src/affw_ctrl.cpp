@@ -220,7 +220,7 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	lock.unlock();
 	if(curStates.empty())
 	{
-		ROS_WARN("No state available yet...");
+		ROS_WARN_THROTTLE(1,"No state available yet...");
 		return false;
 	}
 
@@ -353,6 +353,7 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>( stop - start ).count();
 
+	// if target is zero vel, set action to zero (to avoid drifting)
 	if(forceZeroIfStateZero)
 	{
 		bool allZero = true;
@@ -544,8 +545,9 @@ int main(int argc, char **argv) {
 		ros::Duration(0.5).sleep();
 		return 1;
 	}
-	double dim = upperOutputBounds.size();
-	double stateDim = upperInputBounds.size();
+
+	int dim = upperOutputBounds.size();
+	int stateDim = upperInputBounds.size();
 	createLearner(dim, stateDim);
 
 	// use unreliable connections
