@@ -148,6 +148,12 @@ int main(int argc, char **argv) {
 	while(ros::Time::now().isZero());
 	const char* filename = argv[1];
 	std::ifstream file(filename);
+	if(!file.is_open())
+	{
+		std::cerr << "Could not open trajectory file." << std::endl;
+		return 1;
+	}
+
 	std::vector<geometry_msgs::TwistStamped> setpoints;
 	double t, vx, vy, vw;
 	while (file >> t >> vx >> vy >> vw) {

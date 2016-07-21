@@ -156,6 +156,7 @@ bool getStateAtTime(const ros::Time& stamp, const std::vector<affw_msgs::State>&
 {
 	if(curStates.size() < 2)
 	{
+		ROS_WARN("Not enough states available!");
 		return false;
 	}
 
@@ -219,6 +220,7 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	lock.unlock();
 	if(curStates.empty())
 	{
+		ROS_WARN("No state available yet...");
 		return false;
 	}
 
@@ -265,8 +267,8 @@ bool actionRequest(affw_msgs::ActionRequest::Request &req,
 	if((targetVelStamp - reqTimeBuffer[0]).toSec() < (nTargetVel-1) * frameDt.toSec())
 	{
 		// not enough data yet
-//		ROS_WARN("Not enough data %f %f %ld", (targetVelStamp - reqTimeBuffer[0]).toSec(),
-//				(nTargetVel-1) * frameDt.toSec(), reqTimeBuffer.size());
+		ROS_WARN("Not enough data %f %f %ld", (targetVelStamp - reqTimeBuffer[0]).toSec(),
+				(nTargetVel-1) * frameDt.toSec(), reqTimeBuffer.size());
 		return false;
 	}
 	for(int i=0;i<nTargetVel;i++)
