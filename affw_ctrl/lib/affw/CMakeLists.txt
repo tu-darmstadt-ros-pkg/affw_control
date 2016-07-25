@@ -92,6 +92,9 @@ add_dependencies(affw LIB_LWPR LIB_FANN LIB_OTL)
 #add_executable(testDelayEstimator src/test/testDelayEstimator.cpp)
 #target_link_libraries(testDelayEstimator affw)
 
+add_executable(lwprPerfTest src/test/lwprPerfTest.cpp)
+target_link_libraries(lwprPerfTest lwpr)
+
 #install(TARGETS affw
 #        RUNTIME DESTINATION bin
 #        LIBRARY DESTINATION lib
