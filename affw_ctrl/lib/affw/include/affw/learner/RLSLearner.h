@@ -30,7 +30,8 @@ public:
 	static std::string name() { return "rls"; }
 	std::string getName();
 private:
-	OTL::RLS model;
+	std::vector<OTL::RLS*> model;
+	bool modelPerDim;
 };
 
 } /* namespace affw */

@@ -15,6 +15,7 @@ RLSLearner::RLSLearner(Config& config)
 	// common parameters
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
+	modelPerDim = true;
 
 	// RLS parameters
 	double delta = 0.1;
@@ -26,7 +27,18 @@ RLSLearner::RLSLearner(Config& config)
     noise = config.getDouble(config_prefix + "noise", noise);
 
 	try {
-		model.init( stateDim, actionDim, delta, lambda, noise);
+		if(modelPerDim)
+		{
+			for(int i=0;i<actionDim;i++)
+			{
+				OTL::RLS* rls = new OTL::RLS();
+				rls->init(stateDim, 1, delta, lambda, noise);
+				model.push_back(rls);
+			}
+		} else {
+			model.push_back(new OTL::RLS());
+			model[0]->init( stateDim, actionDim, delta, lambda, noise);
+		}
 	} catch (OTL::OTLException &e) {
 		e.showError();
 	}
@@ -55,23 +67,47 @@ void RLSLearner::addData(
 
 	m_mutex.lock();
 
-	model.train(input, output);
-
+	if(modelPerDim)
+	{
+		for(int i=0;i<y.size();i++)
+		{
+			OTL::VectorXd out(1);
+			out(0) = output(i);
+			model[i]->train(input, out);
+		}
+	} else {
+		model[0]->train(input, output);
+	}
 	m_mutex.unlock();
 }
 
 Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
+	nData++;
     OTL::VectorXd input(state.size());
     for(int i=0;i<state.size();i++)
     	input(i) = state[i] / upperInputBounds[i];
 
-    OTL::VectorXd prediction;
-    OTL::VectorXd prediction_variance;
+    OTL::VectorXd prediction(target.size());
+    OTL::VectorXd prediction_variance(target.size());
 
 	m_mutex.lock();
 
-	model.predict(input, prediction, prediction_variance);
+
+	if(modelPerDim)
+	{
+		for(int i=0;i<target.size();i++)
+		{
+			OTL::VectorXd pred(1);
+			OTL::VectorXd predVar(1);
+			model[i]->predict(input, pred, predVar);
+			prediction(i) = pred(0);
+			prediction_variance(i) = predVar(0);
+		}
+	} else {
+		model[0]->predict(input, prediction, prediction_variance);
+	}
+
 
 	learnerDebug.resize(target.size());
 	for(int i=0;i<target.size();i++)
@@ -87,6 +123,10 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 	for(int i=0;i<v.size();i++)
 	{
+		if(nData < min_nData)
+		{
+			v[i] = 0;
+		}
 		// cut off at bounds
 		v[i] = fminf(upperOutputBounds[i], v[i]);
 		v[i] = fmaxf(-upperOutputBounds[i], v[i]);
@@ -97,12 +137,14 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 void RLSLearner::read(const std::string& folder)
 {
-	model.load(folder + "/rls");
+	// FIXME support modelPerDim
+	model[0]->load(folder + "/rls");
 }
 
 void RLSLearner::write(const std::string& folder)
 {
-	model.save(folder + "/rls");
+	// FIXME support modelPerDim
+	model[0]->save(folder + "/rls");
 }
 
 } /* namespace affw */
