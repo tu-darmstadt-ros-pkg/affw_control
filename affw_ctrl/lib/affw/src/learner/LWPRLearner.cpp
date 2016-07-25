@@ -108,7 +108,7 @@ Vector LWPR_Learner::getActionCompensation(const Vector& state, const Vector& ta
 
 	for(int i=0;i<yp.size();i++)
 	{
-		if(wMax[i] < max_wMax)
+		if(wMax[i] < max_wMax || model->nData() < min_nData)
 		{
 			yp[i] = 0;
 		}

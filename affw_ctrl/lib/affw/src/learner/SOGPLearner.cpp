@@ -116,7 +116,7 @@ void SOGPLearner::addData(
 
 Vector SOGPLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
-
+	nData++;
     OTL::VectorXd input(state.size());
     for(int i=0;i<state.size();i++)
     	input(i) = state[i] / upperInputBounds[i];
@@ -153,6 +153,10 @@ Vector SOGPLearner::getActionCompensation(const Vector& state, const Vector& tar
 
 	for(int i=0;i<v.size();i++)
 	{
+		if(nData < min_nData)
+		{
+			v[i] = 0;
+		}
 		// cut off at bounds
 		v[i] = fminf(upperOutputBounds[i], v[i]);
 		v[i] = fmaxf(-upperOutputBounds[i], v[i]);

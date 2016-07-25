@@ -18,6 +18,8 @@ ModelLearner::ModelLearner(std::string name, Config& config)
 	this->config_prefix = (this->getName() + ".");
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
+	min_nData = config.getInt("min_nData", 0);
+	nData = 0;
 
 	upperInputBounds = config.getDoubleVector("upperInputBounds", upperInputBounds);
 	if(upperInputBounds.empty())

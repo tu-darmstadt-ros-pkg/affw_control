@@ -44,6 +44,8 @@ protected:
 	Config config;
 	boost::mutex m_mutex;
 	std::string config_prefix;
+	int min_nData;
+	int nData;
 };
 
 } /* namespace affw */
