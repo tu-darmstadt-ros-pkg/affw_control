@@ -66,17 +66,20 @@ void RLSLearner::addData(
     	output(i) = y[i] / upperOutputBounds[i];
 
 	m_mutex.lock();
-
-	if(modelPerDim)
-	{
-		for(int i=0;i<y.size();i++)
+	try{
+		if(modelPerDim)
 		{
-			OTL::VectorXd out(1);
-			out(0) = output(i);
-			model[i]->train(input, out);
+			for(int i=0;i<y.size();i++)
+			{
+				OTL::VectorXd out(1);
+				out(0) = output(i);
+				model[i]->train(input, out);
+			}
+		} else {
+			model[0]->train(input, output);
 		}
-	} else {
-		model[0]->train(input, output);
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
 	m_mutex.unlock();
 }
@@ -93,21 +96,23 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 	m_mutex.lock();
 
-
-	if(modelPerDim)
-	{
-		for(int i=0;i<target.size();i++)
+	try {
+		if(modelPerDim)
 		{
-			OTL::VectorXd pred(1);
-			OTL::VectorXd predVar(1);
-			model[i]->predict(input, pred, predVar);
-			prediction(i) = pred(0);
-			prediction_variance(i) = predVar(0);
+			for(int i=0;i<target.size();i++)
+			{
+				OTL::VectorXd pred(1);
+				OTL::VectorXd predVar(1);
+				model[i]->predict(input, pred, predVar);
+				prediction(i) = pred(0);
+				prediction_variance(i) = predVar(0);
+			}
+		} else {
+			model[0]->predict(input, prediction, prediction_variance);
 		}
-	} else {
-		model[0]->predict(input, prediction, prediction_variance);
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
-
 
 	learnerDebug.resize(target.size());
 	for(int i=0;i<target.size();i++)
