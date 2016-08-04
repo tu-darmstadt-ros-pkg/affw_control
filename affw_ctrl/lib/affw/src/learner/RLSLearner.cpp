@@ -144,6 +144,8 @@ void RLSLearner::read(const std::string& folder)
 {
 	// FIXME support modelPerDim
 	model[0]->load(folder + "/rls");
+	nData = 10000;
+	std::cerr << "Reading RLS not implemented yet!" << std::endl;
 }
 
 void RLSLearner::write(const std::string& folder)

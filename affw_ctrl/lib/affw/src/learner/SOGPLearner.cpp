@@ -169,6 +169,7 @@ void SOGPLearner::read(const std::string& folder)
 {
 	m_mutex.lock();
 	model.load(folder + "/sogp");
+	nData = 10000;
 	m_mutex.unlock();
 }
 
