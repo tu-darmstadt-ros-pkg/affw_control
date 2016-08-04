@@ -39,6 +39,7 @@ void OSVRLearner::addData(
 		const Vector& nextState,
 		const Vector& y)
 {
+	nData++;
 	onlinesvr::Vector<double> input(state.size());
 	for(int i=0;i<state.size();i++)
 		input.Add(state[i]);
@@ -76,6 +77,10 @@ Vector OSVRLearner::getActionCompensation(const Vector& state, const Vector& tar
 
 	for(int i=0;i<v.size();i++)
 	{
+		if(nData < min_nData)
+		{
+			v[i] = 0;
+		}
 		// cut off at bounds
 		v[i] = fminf(upperOutputBounds[i], v[i]);
 		v[i] = fmaxf(-upperOutputBounds[i], v[i]);

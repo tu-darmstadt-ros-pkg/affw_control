@@ -55,6 +55,7 @@ void RLSLearner::addData(
 		const Vector& nextState,
 		const Vector& y)
 {
+	nData++;
     OTL::VectorXd input(state.size());
     OTL::VectorXd output(y.size());
 
@@ -86,7 +87,6 @@ void RLSLearner::addData(
 
 Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& target, const Vector& preState, Vector& learnerDebug)
 {
-	nData++;
     OTL::VectorXd input(state.size());
     for(int i=0;i<state.size();i++)
     	input(i) = state[i] / upperInputBounds[i];

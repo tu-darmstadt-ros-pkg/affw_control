@@ -19,6 +19,7 @@ ModelLearner::ModelLearner(std::string name, Config& config)
 	int actionDim = config.getInt("actionDim", 1);
 	int stateDim = config.getInt("stateDim", 1);
 	min_nData = config.getInt("min_nData", 0);
+	min_nData = config.getInt(this->getName() + ".min_nData", min_nData);
 	nData = 0;
 
 	upperInputBounds = config.getDoubleVector("upperInputBounds", upperInputBounds);

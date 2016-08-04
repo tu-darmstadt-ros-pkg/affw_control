@@ -76,6 +76,7 @@ void OESGPLearner::addData(
 		const Vector& nextState,
 		const Vector& y)
 {
+	nData++;
     OTL::VectorXd input(state.size());
     OTL::VectorXd output(y.size());
 
@@ -122,6 +123,10 @@ Vector OESGPLearner::getActionCompensation(const Vector& state, const Vector& ta
 
 	for(int i=0;i<v.size();i++)
 	{
+		if(nData < min_nData)
+		{
+			v[i] = 0;
+		}
 		// cut off at bounds
 		v[i] = fminf(upperOutputBounds[i], v[i]);
 		v[i] = fmaxf(-upperOutputBounds[i], v[i]);
