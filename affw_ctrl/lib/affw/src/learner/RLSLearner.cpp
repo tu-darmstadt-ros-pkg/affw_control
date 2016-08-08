@@ -142,16 +142,20 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 void RLSLearner::read(const std::string& folder)
 {
-	// FIXME support modelPerDim
-	model[0]->load(folder + "/rls");
+	for(int i=0;model.size();i++)
+	{
+		model[i]->load(folder + "/rls" + std::to_string(i));
+	}
+
 	nData = 10000;
-	std::cerr << "Reading RLS not implemented yet!" << std::endl;
 }
 
 void RLSLearner::write(const std::string& folder)
 {
-	// FIXME support modelPerDim
-	model[0]->save(folder + "/rls");
+	for(int i=0;model.size();i++)
+	{
+		model[i]->load(folder + "/rls" + std::to_string(i));
+	}
 }
 
 } /* namespace affw */
