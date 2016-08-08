@@ -142,9 +142,13 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 void RLSLearner::read(const std::string& folder)
 {
-	for(int i=0;model.size();i++)
-	{
-		model[i]->load(folder + "/rls" + std::to_string(i));
+	try {
+		for(int i=0;model.size();i++)
+		{
+			model[i]->load(folder + "/rls" + std::to_string(i));
+		}
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
 
 	nData = 10000;
@@ -152,9 +156,13 @@ void RLSLearner::read(const std::string& folder)
 
 void RLSLearner::write(const std::string& folder)
 {
-	for(int i=0;model.size();i++)
-	{
-		model[i]->load(folder + "/rls" + std::to_string(i));
+	try {
+		for(int i=0;model.size();i++)
+		{
+			model[i]->load(folder + "/rls" + std::to_string(i));
+		}
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
 }
 
