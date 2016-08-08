@@ -20,7 +20,7 @@
 
 ros::Publisher pub_state;
 bool transform2Local = true;
-const int BUFFER_SIZE = 7;
+const int BUFFER_SIZE = 5;
 boost::circular_buffer<geometry_msgs::PoseStamped> poseBuffer(BUFFER_SIZE);
 
 boost::circular_buffer<double> vel_x_buffer(BUFFER_SIZE);
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
 	std::string pose_topic;
 	std::string state_topic;
-	bool transform2Local = false;
+	transform2Local = false;
 	if(	!ros::param::get("pose_topic", pose_topic) ||
 		!ros::param::get("state_topic", state_topic))
 	{

@@ -96,20 +96,25 @@ void SOGPLearner::addData(
 
 	m_mutex.lock();
 
-	OTL::SOGP cpy(model);
+    try {
+		OTL::SOGP cpy(model);
 
-	model.train(input, output);
+		model.train(input, output);
 
-    OTL::VectorXd prediction(target.size());
-    OTL::VectorXd prediction_variance(target.size());
-	model.predict(input, prediction, prediction_variance);
-	for(int i=0;i<target.size();i++)
-	{
-		double v = prediction(i) * upperOutputBounds[i];
-		if(!std::isfinite(v))
+		OTL::VectorXd prediction(target.size());
+		OTL::VectorXd prediction_variance(target.size());
+		model.predict(input, prediction, prediction_variance);
+		for(int i=0;i<target.size();i++)
 		{
-			cpy.train(input, output);
+			double v = prediction(i) * upperOutputBounds[i];
+			if(!std::isfinite(v))
+			{
+				std::cout << "Infinite value predicted for " << v << ". dim. Resetting model." << std::endl;
+				model = cpy;
+			}
 		}
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
 
 	m_mutex.unlock();
@@ -126,14 +131,18 @@ Vector SOGPLearner::getActionCompensation(const Vector& state, const Vector& tar
 
 	m_mutex.lock();
 
-	//update the OESGP with the input
-	model.predict(input, prediction, prediction_variance);
+    try {
+		//update the OESGP with the input
+		model.predict(input, prediction, prediction_variance);
 
-	learnerDebug.resize(target.size()*2);
-	for(int i=0;i<target.size();i++)
-	{
-		learnerDebug[i] = prediction_variance[i];
-		learnerDebug[i+target.size()] = model.getCurrentSize();
+		learnerDebug.resize(target.size()*2);
+		for(int i=0;i<target.size();i++)
+		{
+			learnerDebug[i] = prediction_variance[i];
+			learnerDebug[i+target.size()] = model.getCurrentSize();
+		}
+	} catch (OTL::OTLException &e) {
+		e.showError();
 	}
 
 	m_mutex.unlock();

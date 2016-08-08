@@ -18,9 +18,9 @@ RLSLearner::RLSLearner(Config& config)
 	modelPerDim = true;
 
 	// RLS parameters
-	double delta = 0.1;
-    double lambda = 0.99;
-    double noise = 1e-3;
+	double delta = 1; // δ > 100*σ²: σ=0.1 -> δ = 1
+    double lambda = 0.99; // forgetting factor
+    double noise = 0;
 
     delta = config.getDouble(config_prefix + "delta", delta);
     lambda = config.getDouble(config_prefix + "lambda", lambda);

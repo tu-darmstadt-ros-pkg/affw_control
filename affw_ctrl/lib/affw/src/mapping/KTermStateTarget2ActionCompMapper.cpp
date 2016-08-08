@@ -54,7 +54,7 @@ void KTermStateTarget2ActionCompMapper::getOutput(const Vector& state, const Vec
 		|| dim != maxComp.size()
 		|| dim != k.size())
 	{
-		std::cerr << "Invalid dimensions!" << std::endl;
+		std::cerr << "Invalid dimensions! dim=" << dim << " target=" << target.size() << std::endl;
 		return;
 	}
 
