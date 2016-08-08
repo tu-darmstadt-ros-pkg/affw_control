@@ -177,7 +177,12 @@ Vector SOGPLearner::getActionCompensation(const Vector& state, const Vector& tar
 void SOGPLearner::read(const std::string& folder)
 {
 	m_mutex.lock();
-	model.load(folder + "/sogp");
+    try {
+    	std::cout << "Reading from: " << folder << "/sogp" << std::endl;
+    	model.load(folder + "/sogp");
+	} catch (OTL::OTLException &e) {
+		e.showError();
+	}
 	nData = 10000;
 	m_mutex.unlock();
 }
@@ -185,7 +190,12 @@ void SOGPLearner::read(const std::string& folder)
 void SOGPLearner::write(const std::string& folder)
 {
 	m_mutex.lock();
-	model.save(folder + "/sogp");
+    try {
+    	std::cout << "Saving to: " << folder << "/sogp" << std::endl;
+    	model.save(folder + "/sogp");
+	} catch (OTL::OTLException &e) {
+		e.showError();
+	}
 	m_mutex.unlock();
 }
 
