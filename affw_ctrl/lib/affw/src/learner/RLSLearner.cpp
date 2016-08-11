@@ -25,6 +25,7 @@ RLSLearner::RLSLearner(Config& config)
     delta = config.getDouble(config_prefix + "delta", delta);
     lambda = config.getDouble(config_prefix + "lambda", lambda);
     noise = config.getDouble(config_prefix + "noise", noise);
+    modelPerDim = config.getBool(config_prefix + "modelPerDim", modelPerDim);
 
 	try {
 		if(modelPerDim)
