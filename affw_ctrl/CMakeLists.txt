@@ -30,5 +30,5 @@ catkin_package(
 
 include_directories(BEFORE ${affw_INCLUDES})
 add_executable(affw_ctrl src/affw_ctrl.cpp)
-target_link_libraries(affw_ctrl ${catkin_LIBRARIES} affw lwpr fann OTL)
+target_link_libraries(affw_ctrl ${catkin_LIBRARIES} affw ${affw_LIBRARIES})
 add_dependencies(affw_ctrl affw affw_msgs_generate_messages_cpp LIB_AFFW)
