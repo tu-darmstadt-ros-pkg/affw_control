@@ -143,12 +143,15 @@ Vector RLSLearner::getActionCompensation(const Vector& state, const Vector& targ
 
 void RLSLearner::read(const std::string& folder)
 {
+	std::string filename = "";
 	try {
-		for(int i=0;model.size();i++)
+		for(int i=0;i<model.size();i++)
 		{
-			model[i]->load(folder + "/rls" + std::to_string(i));
+			filename = folder + "/rls" + std::to_string(i);
+			model[i]->load(filename);
 		}
 	} catch (OTL::OTLException &e) {
+		std::cerr << "Could not read model from " << filename << std::endl;
 		e.showError();
 	}
 
@@ -157,12 +160,15 @@ void RLSLearner::read(const std::string& folder)
 
 void RLSLearner::write(const std::string& folder)
 {
+	std::string filename = "";
 	try {
-		for(int i=0;model.size();i++)
+		for(int i=0;i<model.size();i++)
 		{
-			model[i]->load(folder + "/rls" + std::to_string(i));
+			filename = folder + "/rls" + std::to_string(i);
+			model[i]->save(filename);
 		}
 	} catch (OTL::OTLException &e) {
+		std::cerr << "Could not save model to " << filename << std::endl;
 		e.showError();
 	}
 }
