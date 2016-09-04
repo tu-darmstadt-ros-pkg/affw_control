@@ -6,15 +6,14 @@ The following diagram shows the package structure and message flow:
 
 ![alt tag](https://raw.githubusercontent.com/tu-darmstadt-ros-pkg/affw_control/master/doc/ros_pkg_affw.png)
 
-The green boxes are part of this repository. The affw-wrapper contains the robot specific part. The diagram contains two examples. The code for the hector tracker can be found in a separate repository: https://github.com/tu-darmstadt-ros-pkg/hector_tracker_affw
+The green boxes are part of this repository. The affw-wrapper contains the robot specific part. The diagram contains two examples, hector tracker and SSL robot.
 
 ## Compilation
 This is a standard ROS package with multiple sub-projects and can be compiled using catkin. The affw\_ctrl project includes the affw library (affw\_ctrl/lib/affw), which is seperated from the ROS-specific code and has its own CMake project. In the CMakeFile there are some flags for enabling or disabling different learning methods. The CMake project downloads required libraries automatically.
 
 ## Example Project
 An example project for the hector tracker can be found at https://github.com/tu-darmstadt-ros-pkg/hector_tracker_affw
-
-It can be used as reference for other robot platforms.
+and can can be used as reference for other robot platforms.
 
 ## Basic Usage
 The controller provides a service for querying the action compensation on topic "/affw\_ctrl/action":
@@ -115,3 +114,7 @@ sogp.noise=0.1
 The currently learned model can be saved by sending a path to "/affw\_ctrl/save\_model". It is automatically saved, if the node is shut down, but not reloaded automatically unless configured in the config file (see above).
 
 The update mechanism of the compensation model can be switched off by sending false to "/affw\_ctrl/update\_model". In this case, the current state of the model is used for prediction, but no new data is fed to the model.
+
+There are some packages for testing the affw controller: The affw\_joy package can be used to control the robot with a gamepad. The affw\_traj package can read and execute a trajectory from a csv file for evaluation purposes. The affw\_export package can be used to record data from the affw controller to csv-files for debugging purposes. 
+
+Please refer to the example project mentioned above for corresponding launch files.
